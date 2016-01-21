@@ -82,12 +82,12 @@ let DFSLoop1 (G:DFSgraph1)  =
                    )
      // i have to declare rec iter INSIDE DFSLoop1 in this version
     
-     let rec iter n f array = 
-         let list = Array.toList array
-         match list with 
-            | [] -> end_rec n
-            | x::xs -> (f x |> fun ()-> (iter n f (List.toArray xs))   )       
-     // end rec iter
+//     let rec iter n f array = 
+//         let list = Array.toList array
+//         match list with 
+//            | [] -> end_rec n
+//            | x::xs -> (f x |> fun ()-> (iter n f (List.toArray xs))   )       
+//     // end rec iter
 
      let rec iterc n f array (cont:int[]->int[]) = 
          let list = Array.toList array
@@ -101,7 +101,7 @@ let DFSLoop1 (G:DFSgraph1)  =
 
      let rec DFSsub (G:DFSgraph1) (n:int) (cont: int-> unit) =
      //how to make it tail recursive ???
-          let my_f = (fun j -> if not(G.[j].explored1) then (DFSsub G j end_rec) else cont n )
+          let my_f = (fun j -> if not(G.[j].explored1) then (DFSsub G j end_rec) )
 
           G.[n].explored1 <- true
           // G.[n].leader <- s

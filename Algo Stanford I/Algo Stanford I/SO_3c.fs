@@ -73,15 +73,6 @@ let num_nodes =
 
 //////////////////// main code is below ///////////////////
 
-//let rec iterc f cont n array = 
-//   let list = Array.toList array
-//   match list with 
-//     | [] -> cont n
-//     | x::xs -> // f x (fun k -> iterc f cont k (List.toArray xs) )
-//                // do something with x then continue
-                 
-
-
 let DFSLoop1 (G:DFSgraph1)  = 
      let mutable t =  0 
      let mutable s =  -1
@@ -110,13 +101,14 @@ let DFSLoop1 (G:DFSgraph1)  =
 
      let rec DFSsub (G:DFSgraph1) (n:int) (cont: int-> unit) =
      //how to make it tail recursive ???
-          
+          let my_f = (fun j -> if not(G.[j].explored1) then (DFSsub G j end_rec) )
+
           G.[n].explored1 <- true
           // G.[n].leader <- s
           G.[n].children 
             //  |> iterc (fun j cont -> if not(G.[j].explored1) then (DFSsub G j end_rec) else cont n )
             //           end_rec n           
-                |> iter n (fun j -> if not(G.[j].explored1) then (DFSsub G j end_rec) )
+                |> iter n my_f
             // est ce que déjà on est tail récursif ?                 
      // end of DFSsub
      
