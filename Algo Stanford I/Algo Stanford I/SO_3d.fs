@@ -105,8 +105,7 @@ let DFSLoop1 (G:DFSgraph1)  =
 
           G.[n].explored1 <- true
           // G.[n].leader <- s
-          // G.[n].children                    
-            //    |> iter n (fun j -> if not(G.[j].explored1) then (DFSsub G j end_rec) )
+          
           iterc n my_f G.[n].children id
                          
             // est ce que déjà on est tail récursif ?                 

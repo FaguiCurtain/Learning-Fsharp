@@ -12,7 +12,7 @@ let y =
 
  //val it : (int * int) [] 
 
-type Children = int[]
+type Children = int list
 type Node1 =  
      {children : Children ;
       mutable finishingtime : int ;
@@ -34,12 +34,12 @@ let reversegraph1 = new DFSgraph1()
 
 let AddtoGraph (G:DFSgraphcore) (n,c) = 
     if not(G.ContainsKey n) then 
-                              let node = [|c|]
+                              let node = [c]
                               G.Add(n,node)
                             else
                                let c'= G.[n]
                                G.Remove(n) |> ignore
-                               G.Add (n, Array.append c' [|c|])
+                               G.Add (n, List.append c' [c])
                                
 let inline swaptuple (a,b) = (b,a)
 y|> Array.iter (AddtoGraph directgraphcore)
@@ -55,7 +55,7 @@ for i in directgraphcore.Keys do
                reversegraph1.Add (i,node)
     
         else                                   
-               let node = {children = [||] ;
+               let node = {children = [] ;
                            finishingtime = -1 ;
                            explored1 = false ;
                            }
@@ -82,11 +82,10 @@ let DFSLoop1 (G:DFSgraph1)  =
                    )
      // i have to declare rec iter INSIDE DFSLoop1 in this version
     
-     let rec iter n f array = 
-         let list = Array.toList array
+     let rec iter n f list = 
          match list with 
             | [] -> end_rec n
-            | x::xs -> (f x |> fun ()-> (iter n f (List.toArray xs))   )       
+            | x::xs -> (f x |> fun ()-> (iter n f xs)   )       
      // end rec iter
 
      let rec DFSsub (G:DFSgraph1) (n:int) (cont: int-> unit) =
