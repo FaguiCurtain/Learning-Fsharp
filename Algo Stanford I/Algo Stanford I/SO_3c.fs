@@ -89,16 +89,6 @@ let DFSLoop1 (G:DFSgraph1)  =
             | x::xs -> (f x |> fun ()-> (iter n f (List.toArray xs))   )       
      // end rec iter
 
-//     let rec iterc n f array (cont:int[]->int[]) = 
-//         let list = Array.toList array
-//         match list with 
-//            | [] -> end_rec n
-//            | x::xs -> (f x |> fun ()->
-//                                 let newCont = (fun res -> cont res)
-//                                 iterc n f (List.toArray xs) newCont
-//                        )
-      // il semble que cont ne serve à rien !!!
-
      let rec DFSsub (G:DFSgraph1) (n:int) (cont: int-> unit) =
      //how to make it tail recursive ???
           let my_f = (fun j -> if not(G.[j].explored1) then (DFSsub G j end_rec) )
