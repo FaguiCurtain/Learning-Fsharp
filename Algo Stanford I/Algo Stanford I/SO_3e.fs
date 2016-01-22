@@ -82,24 +82,25 @@ let DFSLoop1 (G:DFSgraph1)  =
                    )
      // i have to declare rec iter INSIDE DFSLoop1 in this version
     
-     let rec iterc n f list (cont:int list -> unit) = 
+     let rec iterc n fc list (cont:unit -> 'a) = 
          
          match list with 
-            | [] -> end_rec n
-            | x::xs -> (f x cont |> fun ()->
-                                 let newCont = (fun res -> cont res)
-                                 iterc n f xs newCont
+            | [] -> cont()
+            | x::xs -> (fc x cont |> fun ()->
+                                 let newCont = cont
+                                 iterc n fc xs newCont
                         )
       // il semble que cont ne serve à rien !!!
 
-     let rec DFSsub (G:DFSgraph1) (n:int) (cont: int-> unit) =
+     let rec DFSsubc (G:DFSgraph1) (n:int) (cont: unit -> 'b) =
      //how to make it tail recursive ???
-          let my_f j cont = if not(G.[j].explored1) then (DFSsub G j cont)
+          let my_f_c j (cont:unit->'b) = 
+                       if not(G.[j].explored1) then (DFSsubc G j cont)
 
           G.[n].explored1 <- true
           // G.[n].leader <- s
           
-          iterc n my_f G.[n].children id
+          iterc n my_f_c G.[n].children id
                          
             // est ce que déjà on est tail récursif ?                 
      // end of DFSsub
@@ -110,8 +111,8 @@ let DFSLoop1 (G:DFSgraph1)  =
         // printfn "%d" i
         if not(G.[i].explored1) then do 
                                     s <- i
-                                    DFSsub G i end_rec
-                                                             
+                                    let FirstCont = end_rec
+                                    DFSsubc G i FirstCont                                                   
                                                     
         printfn "%d %d" i G.[i].finishingtime
         

@@ -12,7 +12,7 @@ let y =
 
  //val it : (int * int) [] 
 
-type Children = int[]
+type Children = int list
 type Node1 =  
      {children : Children ;
       mutable finishingtime : int ;
@@ -34,12 +34,12 @@ let reversegraph1 = new DFSgraph1()
 
 let AddtoGraph (G:DFSgraphcore) (n,c) = 
     if not(G.ContainsKey n) then 
-                              let node = [|c|]
+                              let node = [c]
                               G.Add(n,node)
                             else
                                let c'= G.[n]
                                G.Remove(n) |> ignore
-                               G.Add (n, Array.append c' [|c|])
+                               G.Add (n, List.append c' [c])
                                
 let inline swaptuple (a,b) = (b,a)
 y|> Array.iter (AddtoGraph directgraphcore)
@@ -55,7 +55,7 @@ for i in directgraphcore.Keys do
                reversegraph1.Add (i,node)
     
         else                                   
-               let node = {children = [||] ;
+               let node = {children = [] ;
                            finishingtime = -1 ;
                            explored1 = false ;
                            }
@@ -72,60 +72,30 @@ let num_nodes =
     directgraphcore |> Seq.length
 
 //////////////////// main code is below ///////////////////
-
 let DFSLoop1 (G:DFSgraph1)  = 
      let mutable t =  0 
      let mutable s =  -1
 
-     let end_rec = (fun k -> (t <- t+1) 
-                               |> (fun ()-> (G.[k].finishingtime <- t) )
-                   )
-     // i have to declare rec iter INSIDE DFSLoop1 in this version
-    
-//     let rec iter n f array = 
-//         let list = Array.toList array
-//         match list with 
-//            | [] -> end_rec n
-//            | x::xs -> (f x |> fun ()-> (iter n f (List.toArray xs))   )       
-//     // end rec iter
-
-     let rec iterc n f array (cont:int[]->int[]) = 
-         let list = Array.toList array
+     let rec iter_c (n:int) (f_c:'a->(unit->'r)->'r) (list:'a list) (cont: unit->'r) : 'r = 
          match list with 
-            | [] -> end_rec n
-            | x::xs -> (f x |> fun ()->
-                                 let newCont = (fun res -> cont res)
-                                 iterc n f (List.toArray xs) newCont
-                        )
-      // il semble que cont ne serve à rien !!!
-
-     let rec DFSsub (G:DFSgraph1) (n:int) (cont: int-> unit) =
-     //how to make it tail recursive ???
-          let my_f = (fun j -> if not(G.[j].explored1) then (DFSsub G j end_rec) )
-
-          G.[n].explored1 <- true
-          // G.[n].leader <- s
-          
-          iterc n my_f G.[n].children id
-                         
-            // est ce que déjà on est tail récursif ?                 
-     // end of DFSsub
-     
-     // main loop
+            | [] -> (t <- t+1) ; (G.[n].finishingtime <- t) ; cont()
+            | x::xs -> f_c x (fun ()-> iter_c n f_c xs cont)
+     let rec DFSsub (G:DFSgraph1) (n:int) (cont: unit->'r) : 'r=  
+          let my_f_c (j:int)(cont:unit->'r):'r = if not(G.[j].explored1) then (DFSsub G j cont) else cont()
+          G.[n].explored1 <- true         
+          iter_c n my_f_c G.[n].children cont
 
      for i in num_nodes .. -1 .. 1 do
         // printfn "%d" i
         if not(G.[i].explored1) then do 
                                     s <- i
-                                    DFSsub G i end_rec
-                                                             
+                                    DFSsub G i id                                                         
                                                     
         printfn "%d %d" i G.[i].finishingtime
-        
-// End of DFSLoop1
+
  
 DFSLoop1 reversegraph1
-
+printfn "faré"
 printfn "pause"
 Console.ReadKey() |> ignore
 

@@ -77,38 +77,20 @@ let DFSLoop1 (G:DFSgraph1)  =
      let mutable t =  0 
      let mutable s =  -1
 
-     let end_rec = (fun k -> (t <- t+1) 
-                               |> (fun ()-> (G.[k].finishingtime <- t) )
-                   )
-     // i have to declare rec iter INSIDE DFSLoop1 in this version
-    
-     let rec iter n f list = 
+     let rec iter (n:int) (f:'a->unit) (list:'a list) : unit = 
          match list with 
-            | [] -> end_rec n
-            | x::xs -> (f x |> fun ()-> (iter n f xs)   )       
-     // end rec iter
-
-     let rec DFSsub (G:DFSgraph1) (n:int) (cont: int-> unit) =
-     //how to make it tail recursive ???
-          let my_f = (fun j -> if not(G.[j].explored1) then (DFSsub G j end_rec) )
-
-          G.[n].explored1 <- true
-          // G.[n].leader <- s
-          G.[n].children 
-            //  |> iterc (fun j cont -> if not(G.[j].explored1) then (DFSsub G j end_rec) else cont n )
-            //           end_rec n           
-                |> iter n my_f
-            // est ce que déjà on est tail récursif ?                 
-     // end of DFSsub
-     
-     // main loop
+            | [] -> (t <- t+1) ; (G.[n].finishingtime <- t)
+            | x::xs -> f x ; iter n f xs      
+     let rec DFSsub (G:DFSgraph1) (n:int) : unit =  
+          let my_f (j:int) : unit = if not(G.[j].explored1) then (DFSsub G j) 
+          G.[n].explored1 <- true         
+          iter n my_f G.[n].children 
 
      for i in num_nodes .. -1 .. 1 do
         // printfn "%d" i
         if not(G.[i].explored1) then do 
                                     s <- i
-                                    DFSsub G i end_rec
-                                                             
+                                    DFSsub G i                                                         
                                                     
         printfn "%d %d" i G.[i].finishingtime
         
