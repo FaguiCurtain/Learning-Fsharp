@@ -2,9 +2,14 @@
 
 ///////////////// preparing the data ////////////////////
 
-open System
+ open System
 open System.Collections.Generic
 open System.IO
+
+type one = One
+
+// type one = unit
+// let One = ()
 
 let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford I\PA 4 - SCC.txt";;
 // let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford I\PA 4 - test1.txt";;
@@ -32,7 +37,7 @@ let parseLine (line:string)=
 //    (9, 7); (9, 3)|]
 
 // let y = Array.append [|(1,1);(1,2);(2,3);(3,1)|] [|for i in 4 .. 10000 do yield (i,4)|] 
-let y = Array.append [|(1,1);(1,2);(2,3);(3,1)|] [|for i in 4 .. 999 do yield (i,i+1)|] 
+let y = Array.append [|(1,1);(1,2);(2,3);(3,1)|] [|for i in 4 .. 99 do yield (i,i+1)|] 
 
  //val it : (int * int) [] 
 
@@ -101,23 +106,23 @@ let maxnum_nodes =
 let DFSLoop1 (G:DFSgraph1)  = 
      let mutable t =  0 
      let mutable s =  -1
-
-     let rec iter_c (n:int) (f_c:'a->(unit->'r)->'r) (list:'a list) (cont: unit->'r) : 'r = 
+     
+     let rec iter_c (n:int) (f_c:'a->(one->'r)->'r) (list:'a list) (cont: one->'r) : 'r = 
          match list with 
-            | [] -> (t <- t+1) ; (G.[n].finishingtime <- t) ; cont()
-            | x::xs -> f_c x (fun ()-> iter_c n f_c xs cont)
-     let rec DFSsub (G:DFSgraph1) (n:int) (cont: unit->'r) : 'r=  
-          let my_f_c (j:int)(cont:unit->'r):'r = if not(G.[j].explored1) then (DFSsub G j cont) else cont()
-          G.[n].explored1 <- true         
-          iter_c n my_f_c G.[n].children cont
-
+            | [] -> (t <- t+1) ; (G.[n].finishingtime <- t) ; cont One
+            | x::xs -> f_c x (fun one-> iter_c n f_c xs cont)
+     and DFSsub (n:int) (cont: one->'r) : 'r=  
+          
+            G.[n].explored1 <- true         
+            iter_c n my_f_c G.[n].children cont
+     and my_f_c (j:int)(cont:one->'r):'r = if not(G.[j].explored1) then (DFSsub j cont) else cont One
+          
      
      for i in maxnum_nodes .. -1 .. 1 do
        // printfn "%d" i
-        if not(G.[i].explored1) then do 
-                                    s <- i
-                                    DFSsub G i id                                                         
-                                                    
+        if not(G.[i].explored1) then
+                                    ( s <- i ; DFSsub i (id : one-> one) |> ignore )                                                     
+                                                                                  
         printfn "%d %d" i G.[i].finishingtime
 
  
