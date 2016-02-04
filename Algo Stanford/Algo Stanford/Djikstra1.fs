@@ -8,7 +8,7 @@ open MSDN.FSharp
 
 let stopWatch = System.Diagnostics.Stopwatch.StartNew()
 
-let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\PA 5 - dijkstraData.txt"
+let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\PA5 - dijkstraData.txt"
 // let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\PA5 - test4.txt"
 // val x : string [] =
 
@@ -103,6 +103,22 @@ init_loop()
 
 let PP () =
     for i in 0..(PQ.Count-1) do (printfn "PQ %i %A" i PQ.[i]);;
+
+ // code to double check everything and DEBUG
+let check() : unit=
+    let V = [0..N] |> List.filter (fun s-> (inX.[s]=false))
+    let mutable temp = limit
+    for k in V do 
+        temp <- limit
+        let check_list = reversegraph.[k] |> List.filter (fun (n,d) -> inX.[n]=true)     
+        for (i,d_i) in check_list do
+            let y = (A.[i]+d_i)
+            if (y  < temp) then temp <- y else ()
+        if not(PQ.Contains temp k) then printfn "error at node %d with temp=%d" k temp
+                                        printfn "check_list = %A" check_list
+                                        failwith "stopping program"
+                                   else()
+
     
 let one_loop() : int =
     // take the first element from the queue
@@ -123,16 +139,20 @@ let one_loop() : int =
                                                                    if node = 196 then printfn "D.[196] = %d" x else ()
                               ) 
     inX.[W] <- true
+    // DEBUG check
+    check()                          
+     // returns W as a result of one_loop
     W
 
 for k in 1..N do // one_loop()
+                 printfn "big loop k=%d" k
                  printfn "k= %d W=%d" k (one_loop())
                                           
 printfn "%A" A
 // printfn "%i,%i,%i,%i,%i,%i,%i,%i,%i,%i" A.[7] A.[37] A.[59] A.[82] A.[99] A.[115] A.[133] A.[165] A.[188] A.[197]
 PP()
 
-stopWatch.Stop()
+// stopWatch.Stop()
 printfn "%f" stopWatch.Elapsed.TotalMilliseconds
 Console.ReadKey() |> ignore
 
@@ -145,3 +165,8 @@ let AA =[|1000000;0; 2971; 2644; 3056; 2525; 2818; 2599; 1875; 745; 3205; 1551; 
 let B = [|for i in 0..200 do yield A.[i]-AA.[i]|];;
 let BB = [0..N] |> List.filter (fun s-> not(B.[s]=0))
 //val BB : int list = [10; 26; 95; 96; 101; 147; 157; 184; 188; 196]// différences
+// Array.partition (fun s->not(s=0)) B
+// [for i in BB do yield B.[i]] // donne un résultat similaire...
+// 
+
+ 
