@@ -36,10 +36,10 @@ let y =
 
 let nodelist = y |> Array.map fst |> Array.map int
 
-let N1 = Array.max nodelist // attention si il y a un node image plus grand encore !!!
+let N1 = Array.max nodelist // be careful if there is an image node with a bigger ID !!!
 
 
-let graphcore = // (int*int) list [] // il va manquer les nodes qui n'ont pas de chemins sortants
+let graphcore = // (int*int) list [] // nodes without outgoing edges will be missing
     (y |> Array.map snd
        |> Array.map (List.map split_comma)
        |> Array.map (List.map (fun (A:'T[]) -> (int A.[0],int A.[1]) )))
@@ -49,8 +49,8 @@ let N2 = graphcore |> Array.map (List.map fst) |> Array.map List.max |> Array.ma
 
 let N=N2
 
-// construction non optimisée, perte de temps
-// rajoute un élément pour 0 dont on ne se sert pas           
+// non-optimized construction
+
 let graph = 
     let g = Array.create (N+1) []
     for i in 0..((Array.length nodelist)-1) do
@@ -83,10 +83,10 @@ let V = [0..N] |> List.filter (fun s -> not(s=S));;
 let A = Array.create (N+1) limit // on ne se sert pas de A.[0]
 A.[S] <- 0
 
-let C = Array.create (N+1) -1 // enregistre l'index de l'élément de X le plus proche d'un élément de V.
-let D = Array.create (N+1) limit // enregistre le critère de Djikstra
+let C = Array.create (N+1) -1 // stores the index of the element in X nearest to an element in V.
+let D = Array.create (N+1) limit // stores the value of Dijkstra criterion
 
-let inX = Array.create (N+1) false // enregistre si le node est dans X, cad a été déjà traité
+let inX = Array.create (N+1) false // remembers if the node is in X (= has been processed)
 inX.[S]<-true
 
 let PQ = new PriorityQueue<int,int>() // Key = distance to X ; Value = Node 
@@ -156,15 +156,15 @@ PP()
 printfn "%f" stopWatch.Elapsed.TotalMilliseconds
 Console.ReadKey() |> ignore
 
-// 1er essai 2599,2610,2947,2052,2367,2399,2029,2442,2610,3068//
-// la bonne réponse pour A.[188] devrait être 2505...
+// my answer 2599,2610,2947,2052,2367,2399,2029,2442,2610,3068//
+// the right answer for A.[188] is 2505...
 
-// solution venant de Python
+// solutionfrom Python
 let AA =[|1000000;0; 2971; 2644; 3056; 2525; 2818; 2599; 1875; 745; 3205; 1551; 2906; 2394; 1803; 2942; 1837; 3111; 2284; 1044; 2351; 3630; 4028; 2650; 3653; 2249; 2150; 1222; 2090; 3540; 2303; 3455; 3004; 2551; 2656; 998; 2236; 2610; 3548; 1851; 4091; 2732; 2040; 3312; 2142; 3438; 2937; 2979; 2757; 2437; 3152; 2503; 2817; 2420; 3369; 2862; 2609; 2857; 3668; 2947; 2592; 1676; 2573; 2498; 2047; 826; 3393; 2535; 4636; 3650; 743; 1265; 1539; 3007; 4286; 2720; 3220; 2298; 2795; 2806; 982; 2976; 2052; 3997; 2656; 1193; 2461; 1608; 3046; 3261; 2018; 2786; 647; 3542; 3415; 2186; 2398; 4248; 3515; 2367; 2970; 3536; 2478; 1826; 2551; 3368; 2303; 2540; 1169; 3140; 2317; 2535; 1759; 1899; 508; 2399; 3513; 2597; 2176; 1090; 2328; 2818; 1306; 2805; 2057; 2618; 1694; 3285; 1203; 676; 1820; 1445; 2468; 2029; 1257; 1533; 2417; 3599; 2494; 4101; 546; 1889; 2616; 2141; 2359; 648; 2682; 3464; 2873; 3109; 2183; 4159; 1832; 2080; 1831; 2001; 3013; 2143; 1376; 1627; 2403; 4772; 2556; 2124; 1693; 2442; 3814; 2630; 2038; 2776; 1365; 3929; 1990; 2069; 3558; 1432; 2279; 3829; 2435; 3691; 3027; 2345; 3807; 2145; 2703; 2884; 3806; 1151; 2505; 2340; 2596; 4123; 1737; 3136; 1073; 1707; 2417; 3068; 1724; 815; 2060|]
 
 let B = [|for i in 0..200 do yield A.[i]-AA.[i]|];;
 let BB = [0..N] |> List.filter (fun s-> not(B.[s]=0))
-//val BB : int list = [10; 26; 95; 96; 101; 147; 157; 184; 188; 196]// différences
+//val BB : int list = [10; 26; 95; 96; 101; 147; 157; 184; 188; 196]// index of nodes with differences
 // Array.partition (fun s->not(s=0)) B
 // [for i in BB do yield B.[i]] // donne un résultat similaire...
 // 
