@@ -20,7 +20,6 @@ type 'a Queue =
     member enqueue : 'a -> 'a Queue
     static member empty : 'a Queue
 
-
 [<Class>]
 type BinaryTree<'a when 'a : comparison> =
     member hd : 'a

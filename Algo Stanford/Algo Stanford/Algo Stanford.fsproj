@@ -55,13 +55,12 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
-    <None Include="RProvider.fsx" />
     <None Include="App.config" />
     <Content Include="packages.config" />
+    <None Include="README_load_packages.fsx" />
     <Compile Include="AwesomeCollections.fsi" />
     <Compile Include="AwesomeCollections.fs" />
-    <Compile Include="PriorityQueue.fs" />
-    <Compile Include="Djikstra1.fs" />
+    <Compile Include="mytest.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="DynamicInterop">
@@ -72,14 +71,19 @@
       <HintPath>..\packages\FSharp.Charting.0.90.13\lib\net40\FSharp.Charting.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="FSharp.Core">
+      <HintPath>..\packages\FSharp.Core.4.0.0.1\lib\net40\FSharp.Core.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="FSharp.Data">
       <HintPath>..\packages\FSharp.Data.2.2.5\lib\net40\FSharp.Data.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="mscorlib" />
-    <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <Reference Include="FSharpx.Collections">
+      <HintPath>..\packages\FSharpx.Collections.1.13.4\lib\net40\FSharpx.Collections.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="mscorlib" />
     <Reference Include="RDotNet">
       <HintPath>..\packages\R.NET.Community.1.6.4\lib\net40\RDotNet.dll</HintPath>
       <Private>True</Private>
