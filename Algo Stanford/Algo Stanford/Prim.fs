@@ -11,13 +11,17 @@ let stopWatch = System.Diagnostics.Stopwatch.StartNew()
 
 ///////////////// preparing the data /////////////////
 
-let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\PA1 - edges_test1.txt"
+// let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\PA1 - edges_test1.txt"
+// answer = 37
 
-// let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\PA1 - edges.txt"
+
+let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\PA1 - edges.txt"
 // file format 
 // [number_of_nodes] [number_of_edges]
 // [one_node_of_edge_1] [other_node_of_edge_1] [edge_1_cost]
 // [one_node_of_edge_2] [other_node_of_edge_2] [edge_2_cost]...
+
+// the cost for edges.txt is between -9998 and 9993
 
 let split (text:string)=
     text.Split [|'\t';' '|]
@@ -42,6 +46,8 @@ let parseLine (line:string)=
   //  |> Array.map (fun s-> (int s))
     |> splitIntoKeyValue2
 
+//////////////////////////////
+
 let (n_nodes,n_edges) = parseHeader x.[0]
 
 let list = x |> Array.tail |> Array.map parseLine |> Array.toList
@@ -50,7 +56,7 @@ let nodelist = List.append (list |> List.map (fun (x,y,z) -> x))
                            (list |> List.map (fun (x,y,z) -> y))
                |> List.distinct
 
-let graph = // do not use graph.[0]
+let graph = // do not use graph.[0] //(int * int) list []
     let g = Array.create (n_nodes+1) []
     for (x,y,z) in list do
         g.[x]<-(y,z)::g.[x]
@@ -62,6 +68,11 @@ let mini (s : (int*int) list) =
          match s with 
             | [] -> (-1,(-1,-1))
             | _  -> s |> Seq.mapi (fun i x -> (i, x)) |> Seq.minBy snd
+
+let maxi (s : (int*int) list) = 
+         match s with 
+            | [] -> (-1,(-1,-1))
+            | _  -> s |> Seq.mapi (fun i x -> (i, x)) |> Seq.maxBy snd
 
 
  ///////////////// initializing the heap /////////////////
@@ -94,11 +105,10 @@ let C = Array.create (n_nodes+1) (0,0) // initialement, enregistre pour chaque p
 let D = Array.create (n_nodes+1) (0,limit) // enregistre le coût minimum de X à v: (minedge,mincost)
 
 let mutable tmp = 0
-let mutable tmp1 = (0,0)
+// let mutable tmp1 = (0,0)
 for i in 1..n_nodes do
-    tmp1 <- (graph.[i] |> mini |> snd)
-    tmp <- snd tmp1
-    PQ0.Enqueue tmp i
+    let tmp1 = (graph.[i] |> mini |> snd)
+    PQ0.Enqueue (snd tmp1) i
     C.[i] <- tmp1
 
 
@@ -132,6 +142,7 @@ let init_loop() : int = // returns W the initial node
     
     PQ.RemoveAt (PQ.IndexOf cost u) |> ignore
     D.[0]<- (0,0)
+    inX.[u] <- true // ne pas oublier !!!
     W
 
 let one_loop (k:int) : unit =

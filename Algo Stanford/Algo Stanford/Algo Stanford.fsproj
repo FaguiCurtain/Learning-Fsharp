@@ -58,9 +58,9 @@
     <None Include="App.config" />
     <Content Include="packages.config" />
     <None Include="README_load_packages.fsx" />
-    <Compile Include="AwesomeCollections.fsi" />
-    <Compile Include="AwesomeCollections.fs" />
-    <Compile Include="mytest.fs" />
+    <Compile Include="PriorityQueue.fs" />
+    <Compile Include="UnionFind.fs" />
+    <Compile Include="kClustering_big_test_faster.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="DynamicInterop">
