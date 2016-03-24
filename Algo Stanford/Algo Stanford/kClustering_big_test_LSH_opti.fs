@@ -12,10 +12,9 @@ let stopWatch = System.Diagnostics.Stopwatch.StartNew()
 
 ///////////////// preparing the data /////////////////
 
-let y = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\PA2 - clustering_big.txt"
-// let n_nodes = 10000 // runs in 1456 ms
-let n_nodes = 200000
-let x = y.[0..n_nodes]
+let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\PA2 - clustering_big.txt"
+let n_nodes = 10000 // answer = 9116, 38000ms
+
 
 // let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\Algo II - PA2 Q2 - test1.txt"
 // 200,000 nodes with 24-bit labels
@@ -48,90 +47,42 @@ let parseHeader (line:string)=
   //  |> Array.map (fun s-> (int s))
     |> splitIntoKeyValue1
 
-let parseLine (line:string)=
-    line
-    |> split
-    |> Array.filter (fun s -> not(s=""))
-    |> Array.map  (fun s-> (int s))
-    |> Array.map  (fun e-> (e=1)) 
+// converts each binary string to a integer 
+let parseLine (line:string)= 
+    int ("0b"+ line.Replace(" ",""))
+    
+    
     
 //////////////////////////////
 
 // let (n_nodes,n_bits) = parseHeader x.[0]
 let n_bits = parseHeader x.[0] |> snd
 
-let edges = x |> Array.map parseLine
-edges.[0] <- [|for i in 1..n_bits do yield false|] // we don't use .[0]
+x.[0] <- "0" // hack // we don't use .[0]
+let edges =  x |> Array.map parseLine
+edges.[0] <- -1 // we don't use .[0]
 
 // https://msdn.microsoft.com/en-us/library/dd233239.aspx raise
 exception InnerError of string
 
-//let rec power2 k = //for bit calculations only 
-//    match k with 
-//      | 0 -> 1
-//      | _ -> if ((k >= 8) || (k<0)) then raise (InnerError("power exponent not allowed"))
-//                else 2 * power2 (k-1)
-
-let powers_of_2 = [|1;2;4;8;16;32;64;128;256;512;1024;2048;4096;8192;16384;32768;65536;131072;262144;524288;1048576;2097152;4194304;8388608;16777216|]
-
-let power2 k = 
-     if ((k >= 24) || (k<0)) then raise (InnerError("power exponent not allowed"))
-        else powers_of_2.[k]
-
-//let convert_to_byte bitarray : byte = //converts a boolean vector of size 8 into a byte
-//    Array.fold (fun (acc,k) (bit:bool) -> let x = System.Convert.ToInt32(bit)
-//                                          (acc+ x*(power2 k),k+1))
-//               (0,0) bitarray
-//    |> fst |> byte
-
-let convert_bitarray_to_int bitarray : int = //converts a boolean vector of size (16 for example) into an integer from 0 to 65535
-    Array.fold (fun (acc,k) (bit:bool) -> let x = System.Convert.ToInt32(bit)
-                                          (acc+ x*(power2 k),k+1))
-               (0,0) bitarray
-    |> fst
-// note: we read bits from 0 and left to right so this is *not* the "natural" way to do it
-
 ///////////////// implementing LSH to get a list of closest nodes /////////////////////
 
-let size_band = 8 // = r
-let num_bands = 3 // number of bands = b
-// b * r = n_bits
-// 2^16 = 65536 ça fait un load facteur de 3 à peu près...
+let makehash (n:int) =
+    let byte1 = n >>> 18                  // edge.[0..5]  
+    let byte2 = (n>>>12) - ((n>>>18)<<<6) // edge.[6..11]
+    let byte3 = (n>>> 6) - ((n>>>12)<<<6) // edge.[12..17]
+    let byte4 = n - (n>>>6)<<<6           // edge.[18..23]
 
-// http://theburningmonk.com/2011/12/f-from-string-to-byte-array-and-back/
-//let makehash (edge:bool[]) =
-//    let byte1 = edge.[0..7]   |> convert_to_byte
-//    let byte2 = edge.[8..15]  |> convert_to_byte
-//    let byte3 = edge.[16..23] |> convert_to_byte
-//    let hash12 = System.Convert.ToBase64String [|byte1;byte2|]
-//    let hash23 = System.Convert.ToBase64String [|byte2;byte3|]
-//    let hash31 = System.Convert.ToBase64String [|byte3;byte1|]
-//    // nota bene System.Convert.ToBase64String n'est pas commutatif
-//    
-//    (hash12,hash23,hash31)
-
-let makehash (edge:bool[]) =
-    let byte1 = edge.[0..5] // edge.[0..5]  
-    let byte2 = edge.[6..11] // edge.[6..11]
-    let byte3 = edge.[12..17] // edge.[12..17]
-    let byte4 = edge.[18..23] // edge.[18..23]
-
-    let byte12 = Array.append byte1 byte2
-    let byte13 = Array.append byte1 byte3
-    let byte14 = Array.append byte1 byte4
-    let byte23 = Array.append byte2 byte3
-    let byte24 = Array.append byte2 byte4
-    let byte34 = Array.append byte3 byte4
-    let hash12 = convert_bitarray_to_int byte12
-    let hash13 = convert_bitarray_to_int byte13
-    let hash14 = convert_bitarray_to_int byte14
-    let hash23 = convert_bitarray_to_int byte23
-    let hash24 = convert_bitarray_to_int byte24
-    let hash34 = convert_bitarray_to_int byte34
+    let hash12 = (byte1)<<<6 + byte2
+    let hash13 = (byte1)<<<6 + byte3
+    let hash14 = (byte1)<<<6 + byte4
+    let hash23 = (byte2)<<<6 + byte3
+    let hash24 = (byte2)<<<6 + byte4
+    let hash34 = (byte3)<<<6 + byte4
 
     (hash12,hash13,hash14,hash23,hash24,hash34)
 
-let hash_array =  edges |> Array.map makehash // array of size n_nodes +1 
+let hash_array =  edges |> Array.map makehash // array of size n_nodes +1 [0..n_nodes]
 
 // let hashtable1 = new Hashtable (200000,float32 0.2);; pourquoi ça plante ????
 
@@ -141,15 +92,6 @@ let hashtable14 = new Dictionary<int,int list>()
 let hashtable23 = new Dictionary<int,int list>()
 let hashtable24 = new Dictionary<int,int list>()
 let hashtable34 = new Dictionary<int,int list>()
-
-//let AddtoHashtable (hashtable:Hashtable) (k,v) =
-//    if not(hashtable.ContainsKey k) then 
-//                              let value = [v]
-//                              hashtable.Add(k,value)
-//                            else
-//                               let v'= hashtable.[k]
-//                               hashtable.Remove(k) |> ignore
-//                               hashtable.Add (k, v::v')
 
 let AddtoDict (dict:Dictionary<int,int list>) (k,v) =
     if not(dict.ContainsKey k) then 
@@ -197,15 +139,24 @@ let keycount_table (hashtable:Dictionary<int,int list>) (keylist:int list) : (in
 //   (32, 10); (68, 9); (71, 2); (69, 6); (30, 4); (66, 12); (28, 2); (77, 2);
 //   (67, 8); (72, 4); (74, 1); (70, 2); (29, 1)]
 // horrible result !!!! too many candidates !!!!
-     
-let hammond_distance (u:bool[]) (v:bool[]):int =
-    let size_u = u.Length
-    let size_v = v.Length
-    if (size_u <> size_v) then raise (InnerError("boolean vectors of different sizes"))
-                          else  Array.map2 (fun b1 b2 -> b1 = b2) u v 
-                                |> Array.fold (fun acc x -> match x with 
-                                                              | true  -> acc
-                                                              | false -> acc+1) 0
+
+let rec intToBinary i =
+    match i with
+    | 0 | 1 -> string i
+    | _ ->
+        let bit = string (i % 2)
+        (intToBinary (i / 2)) + bit 
+ 
+    
+let hammond_distance (u:int) (v:int):int =
+    (u^^^v) |> intToBinary |> 
+       Seq.fold (fun acc c ->
+                     match c with
+                       |'1' ->  acc+1
+                       |'0' ->  acc+0
+                       | _ -> acc // should not happen
+                 ) 0
+
 let get_hammond_distance i j =
     hammond_distance edges.[i] edges.[j]
 

@@ -58,9 +58,8 @@
     <None Include="App.config" />
     <Content Include="packages.config" />
     <None Include="README_load_packages.fsx" />
-    <Compile Include="PriorityQueue.fs" />
     <Compile Include="UnionFind.fs" />
-    <Compile Include="kClustering_big_test_faster.fs" />
+    <Compile Include="Prim_v2b.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="DynamicInterop">

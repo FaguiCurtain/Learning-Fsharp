@@ -78,7 +78,7 @@ let maxi (s : (int*int) list) =
  ///////////////// initializing the heap /////////////////
 
 let limit = 1000000 // max distance limit
-let mutable k = 0
+// let mutable k = 0
 let inX = Array.create (n_nodes+1) false // enregistre si le node est dans X, cad a été déjà traité
 inX.[0]<-true
 
@@ -104,14 +104,10 @@ let B = Array.create (n_nodes) (0,0) // liste des edges inclus dans l'arbre opti
 let C = Array.create (n_nodes+1) (0,0) // initialement, enregistre pour chaque point le sommet vers lequel le coût est minimal
 let D = Array.create (n_nodes+1) (0,limit) // enregistre le coût minimum de X à v: (minedge,mincost)
 
-let mutable tmp = 0
-// let mutable tmp1 = (0,0)
 for i in 1..n_nodes do
-    let tmp1 = (graph.[i] |> mini |> snd)
-    PQ0.Enqueue (snd tmp1) i
-    C.[i] <- tmp1
-
-
+    let closest_neighbour = (graph.[i] |> mini |> snd)
+    PQ0.Enqueue (snd closest_neighbour) i
+    C.[i] <- closest_neighbour
 
 let init_loop() : int = // returns W the initial node
     let z = PQ0.Dequeue()
