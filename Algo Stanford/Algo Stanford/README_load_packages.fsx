@@ -9,6 +9,11 @@ open FSharpx.Collections
 // FSharp.Core for F# 4.0 4.0.0.1
 // Install-Package FSharp.Core
 
+#r @"C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\packages\Spreads.0.3.5\lib\net45\Spreads.dll"
+#r @"C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\packages\Spreads.Core.0.3.5\lib\net45\Spreads.Core.dll"
+#r @"C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\packages\Spreads.Core.0.3.5\lib\net45\Spreads.Collections.dll"
+#r @"C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\packages\Spreads.Extensions.0.3.5\lib\net45\Spreads.Extensions.dll"
+
 // let printSourceLocation() = 
 //     printfn "Line: %s" __SOURCE_DIRECTORY__
 //     printfn "Source Directory: %s" __SOURCE_DIRECTORY__
@@ -16,3 +21,8 @@ open FSharpx.Collections
 // printSourceLocation()
 
 // right click on references: add references > projects > solutions
+
+
+// converts each binary string to a integer 
+let parseLine (line:string)= 
+    int ("0b"+ line.Replace(" ",""))

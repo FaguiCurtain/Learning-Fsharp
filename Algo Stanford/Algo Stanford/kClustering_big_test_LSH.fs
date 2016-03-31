@@ -5,7 +5,6 @@ open System.IO
 
 open FSharp.Core
 
-open MSDN.FSharp // add above PriorityQueue.fs
 open UnionFind // add above UnionFind.fs
 
 let stopWatch = System.Diagnostics.Stopwatch.StartNew()
@@ -13,8 +12,8 @@ let stopWatch = System.Diagnostics.Stopwatch.StartNew()
 ///////////////// preparing the data /////////////////
 
 let y = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\PA2 - clustering_big.txt"
-// let n_nodes = 10000 // runs in 1456 ms
-let n_nodes = 200000
+let n_nodes = 10000 // runs in 1456 ms
+// let n_nodes = 200000
 let x = y.[0..n_nodes]
 
 // let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\Algo II - PA2 Q2 - test1.txt"
@@ -179,6 +178,13 @@ let keylist34 = hashtable34.Keys |> Seq.toList
 
 //returns a table with the number of occurences of length sizes for the entries of the Dictionary
 // example of recursing thru a list indexing a Dict to create a list
+
+stopWatch.Stop()
+printfn "%f" stopWatch.Elapsed.TotalMilliseconds
+
+let stopWatch1 = System.Diagnostics.Stopwatch.StartNew()
+
+
 let keycount_table (hashtable:Dictionary<int,int list>) (keylist:int list) : (int*int) list=     
     let rec helper (l:int list) (listacc:int list) = 
        match l with
@@ -283,8 +289,8 @@ let num_clusters = (p.output() |> Array.map snd |> Seq.distinct |> Seq.length) -
 printfn "number of clusters = %A" num_clusters
 
 
-stopWatch.Stop()
-printfn "%f" stopWatch.Elapsed.TotalMilliseconds
+stopWatch1.Stop()
+printfn "%f" stopWatch1.Elapsed.TotalMilliseconds
 Console.ReadKey() |> ignore
 
 

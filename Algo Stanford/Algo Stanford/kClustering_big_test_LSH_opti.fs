@@ -5,7 +5,6 @@ open System.IO
 
 open FSharp.Core
 
-open MSDN.FSharp // add above PriorityQueue.fs
 open UnionFind // add above UnionFind.fs
 
 let stopWatch = System.Diagnostics.Stopwatch.StartNew()
@@ -13,8 +12,8 @@ let stopWatch = System.Diagnostics.Stopwatch.StartNew()
 ///////////////// preparing the data /////////////////
 
 let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\PA2 - clustering_big.txt"
-let n_nodes = 10000 // answer = 9116, 38000ms
-
+// let n_nodes = 10000 // answer = 9116, 8000ms , 1000ms for hashing
+let n_nodes = 10000
 
 // let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\Algo II - PA2 Q2 - test1.txt"
 // 200,000 nodes with 24-bit labels
@@ -116,6 +115,11 @@ let keylist23 = hashtable23.Keys |> Seq.toList
 let keylist24 = hashtable24.Keys |> Seq.toList
 let keylist34 = hashtable34.Keys |> Seq.toList
 
+stopWatch.Stop()
+printfn "%f" stopWatch.Elapsed.TotalMilliseconds
+
+let stopWatch1 = System.Diagnostics.Stopwatch.StartNew()
+
 // hashtable format =
 // list of (hashkey, list of [nodes hashing to the same key])
 
@@ -140,22 +144,34 @@ let keycount_table (hashtable:Dictionary<int,int list>) (keylist:int list) : (in
 //   (67, 8); (72, 4); (74, 1); (70, 2); (29, 1)]
 // horrible result !!!! too many candidates !!!!
 
-let rec intToBinary i =
-    match i with
-    | 0 | 1 -> string i
-    | _ ->
-        let bit = string (i % 2)
-        (intToBinary (i / 2)) + bit 
- 
-    
+//let rec intToBinary i =
+//    match i with
+//    | 0 | 1 -> string i
+//    | _ ->
+//        let bit = string (i % 2)
+//        (intToBinary (i / 2)) + bit 
+//    
+//let hammond_distance (u:int) (v:int):int =
+//    (u^^^v) |> intToBinary |> 
+//       Seq.fold (fun acc c ->
+//                     match c with
+//                       |'1' ->  acc+1
+//                       |'0' ->  acc+0
+//                       | _ -> acc // should not happen
+//                 ) 0
+
+let rec sumbits (n:int):int=
+    let rec helper acc m =
+       match m with
+         | 0 -> acc
+         | 1 -> acc+1 // enlever cela ?
+         | _ -> let r = m%2
+                helper (acc+r) (m>>>1)
+    helper 0 n
+
 let hammond_distance (u:int) (v:int):int =
-    (u^^^v) |> intToBinary |> 
-       Seq.fold (fun acc c ->
-                     match c with
-                       |'1' ->  acc+1
-                       |'0' ->  acc+0
-                       | _ -> acc // should not happen
-                 ) 0
+    (u^^^v) |> sumbits
+
 
 let get_hammond_distance i j =
     hammond_distance edges.[i] edges.[j]
@@ -170,7 +186,7 @@ let generate_distance_pair (nodelist:int list) =
                      |> main_helper t
      main_helper nodelist []             
 
-// example of recursing thru a list indexing a Dict to create a list                       
+// example of recursing thru a list indexing a Dict to create a list  //                    
 let make_Hdistance_list (hashtable:Dictionary<int,int list>) (keylist:int list) : (int*int*int) list=     
     let rec helper (l:int list) (listacc: (int*int*int) list) = 
        match l with
@@ -196,7 +212,11 @@ let process_edges_table = process_list |> List.map (fun (a,b,c)-> c) |> Seq.coun
 
 printfn "edges_table %A "  process_edges_table    
 
+stopWatch1.Stop()
+printfn "%f" stopWatch1.Elapsed.TotalMilliseconds
 //////////////////////////////////////////
+
+let stopWatch2 = System.Diagnostics.Stopwatch.StartNew()
 
 let p = Partition(n_nodes)
 
@@ -234,8 +254,8 @@ let num_clusters = (p.output() |> Array.map snd |> Seq.distinct |> Seq.length) -
 printfn "number of clusters = %A" num_clusters
 
 
-stopWatch.Stop()
-printfn "%f" stopWatch.Elapsed.TotalMilliseconds
+stopWatch2.Stop()
+printfn "%f" stopWatch2.Elapsed.TotalMilliseconds
 Console.ReadKey() |> ignore
 
 

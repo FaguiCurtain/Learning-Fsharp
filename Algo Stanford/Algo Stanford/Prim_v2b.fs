@@ -1,13 +1,15 @@
 ﻿///// implementation of heap-based Prim's algorithm for finding       /////
 ///// Minimum Spanning Tree (MST) in a connected non-directed graph   /////
 ///// see https://class.coursera.org/algo2-004/lecture/35             /////
+///// Programming Assignment #1 Question 3                            /////
 
 open System
 open System.Collections.Generic
 open System.IO
 
 open FSharp.Core
-open FSharpx.Collections
+open Spreads
+open Spreads.Collections
 
 let stopWatch = System.Diagnostics.Stopwatch.StartNew()
 
@@ -18,6 +20,9 @@ let stopWatch = System.Diagnostics.Stopwatch.StartNew()
 
 
 let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\PA1 - edges.txt"
+// answer = -3612829L
+
+
 // file format 
 // [number_of_nodes] [number_of_edges]
 // [one_node_of_edge_1] [other_node_of_edge_1] [edge_1_cost]
@@ -87,15 +92,20 @@ let limit = 1000000 // max distance limit
 let inX = Array.create (n_nodes+1) false // true if node in X = already processed
 inX.[0]<-true
 
-let mutable heap = Heap<int*int>(false,0,E) // Key = distance to X ; Value = Node 
+let heap = SortedDeque<int*int>(n_nodes) // Key = distance to X ; Value = Node 
+
+let GetIndexOf (heap:SortedDeque<int*int>) elem = 
+    try Some (heap.IndexOfElement elem) with | :? System.ArgumentOutOfRangeException -> None;;
 
 let PP () =
     let readheap = Seq.toArray heap
-    for i in 0..(heap.Length - 1) do (printfn "heap %i %A" i readheap.[i])
+    for i in 0..(readheap.Length - 1) do (printfn "heap %i %A" i readheap.[i])
 
 let MST_edges = Array.create (n_nodes) (0,0,0) // list of edges in MST
 let C = Array.create (n_nodes+1) (0,0) // initialement, enregistre pour chaque point le sommet vers lequel le coût est minimal
 let heap_dynamic_info = Array.create (n_nodes+1) (0,limit) // enregistre le coût minimum de X à v: (minedge,mincost)
+
+
 
 /////////////////////////////////////////////////
 let init_loop(firstnode:int) :unit=
@@ -118,7 +128,7 @@ let init_loop(firstnode:int) :unit=
     graph.[W] |> 
       List.iter  
         ( fun (node,cost) -> 
-             heap <- heap.Insert (cost,node)
+             heap.Add (cost,node)
              heap_dynamic_info.[node] <- (W,cost)  )          
     inX.[W] <- true
 
@@ -128,22 +138,27 @@ let init_loop(firstnode:int) :unit=
         fun (node,cost) -> 
            if (inX.[node]=true) then () 
                                 elif (cost>= (snd heap_dynamic_info.[node]) ) then ()                                                       
-                                else   let i = PQ.IndexOf (snd heap_dynamic_info.[node]) node
-                                       if (i= -1) then () else PQ.RemoveAt i
-                                       PQ.Enqueue cost node
-                                       heap_dynamic_info.[node] <- (firstnode,cost)                                                             
-                 )
-    
-    PQ.RemoveAt (PQ.IndexOf cost firstnode) |> ignore
+                                else   let i_opt = GetIndexOf heap ( (snd heap_dynamic_info.[node]),node)
+                                       match i_opt with
+                                          | None -> ()
+                                          | Some i -> if i<0 then heap.Add (cost,node)
+                                                                  heap_dynamic_info.[node] <- (W,cost)
+                                                             else (heap.RemoveAt i |> ignore)
+                                                                  heap.Add (cost,node)
+                                                                  heap_dynamic_info.[node] <- (W,cost)
+                ) // List.iter
+   
+    heap.RemoveAt (heap.IndexOfElement (cost,firstnode)) |> ignore
     heap_dynamic_info.[0]<- (0,0)
+    heap_dynamic_info.[W]<- (firstnode,cost)
     inX.[firstnode] <- true // ne pas oublier !!!
     
 
 let one_loop (k:int) : unit = 
     // take the first element from the queue
-    let z = PQ.Dequeue()
-    let W = z.Value // outer vertex with cheapest crossing-edge to X
-    let cost = z.Key
+    let z = heap.RemoveFirst()
+    let W = snd z // outer vertex with cheapest crossing-edge to X
+    let cost = fst z
     let u = heap_dynamic_info.[W] |> fst // vertex in X connected to W with cheapest crossing-edge
     MST_edges.[k]<-(u,W,cost)
 
@@ -153,21 +168,26 @@ let one_loop (k:int) : unit =
     let update_list = graph.[W]
     update_list |> 
       List.iter ( 
-        fun (node,cost) -> 
+        fun (node,cost) -> // IndexOfElement n'a pas de code d'erreur
+           // printfn "%A %A" node cost // for debugging
            if (inX.[node]=true) then () 
                                 elif (cost> (snd heap_dynamic_info.[node]) ) then ()                                                       
-                                else   let i = PQ.IndexOf (snd heap_dynamic_info.[node]) node
-                                       if (i= -1) then () else PQ.RemoveAt i
-                                       PQ.Enqueue cost node
-                                       heap_dynamic_info.[node] <- (W,cost)
+                                else   let i_opt = GetIndexOf heap ((snd heap_dynamic_info.[node]),node)
+                                       match i_opt with
+                                         | None -> () 
+                                         | Some i -> if i<0 then heap.Add (cost,node)
+                                                                 heap_dynamic_info.[node] <- (W,cost)
+                                                            else (heap.RemoveAt i |> ignore)
+                                                                 heap.Add (cost,node)
+                                                                 heap_dynamic_info.[node] <- (W,cost)
                 )
     inX.[W] <- true
 /////////////////////////////////////////////
 init_loop(1)
-for k in 2..140 do one_loop k 
+for k in 2..(n_nodes - 1) do one_loop k 
 // for k in 2..(n_nodes - 1) do one_loop k 
 
-let res = heap_dynamic_info |> Array.map (snd >> int64)  |> Array.sum                                          
+let res = MST_edges |> Array.map ((fun(a,b,c)->c) >> int64)  |> Array.sum                                          
 printfn "%A" res
 printfn "%A" MST_edges
 PP()
@@ -196,3 +216,4 @@ let check = [for i in 0..499 do if i = 0 then yield 0
 // après 140 itérations bizarrement, le heap ne fonctionne pas bien !!!!
 // PQ 0 [-7230, 309]
 // PQ 146 [-7277, 308]
+
