@@ -37,12 +37,25 @@ let parseLine (line:string) =
     |> splitIntoValues
    
 let objects = x |> Array.map parseLine //  [value_1] [weight_1]
+let objects = [|(6,4);(3,4);(2,3);(4,2);(4,3)|]
+
 let (knapsack_size,number_of_items) = objects.[0] // (10000,100)
 
-let A = Array2D.create 101 10001 0
+// let A = Array2D.create 101 10001 0
+let A = Array2D.create (number_of_items + 1) (knapsack_size + 1) 0
+
+let mutable weight = 0
+let mutable value = 0
 
 for i in 1..number_of_items do
     for x in 0..knapsack_size do 
-        A.[i,x]<-max A.[i-1,x] ( A.[i-1,max 0 (x - (snd objects.[i])) ] + (fst objects.[i]) )
+        weight <- snd objects.[i]
+        value <- fst objects.[i]
+        if x>= weight then 
+               A.[i,x]<-max A.[i-1,x] ( A.[i-1, (x - weight) ] + value )
+                      else
+               A.[i,x]<- A.[i-1,x]
 
-printfn "answer = " A.[100,10000]
+printfn "answer = %A " A.[number_of_items,knapsack_size]
+
+// correct answer for Q1 with knapsack1.txt (10000,100) = 2493893

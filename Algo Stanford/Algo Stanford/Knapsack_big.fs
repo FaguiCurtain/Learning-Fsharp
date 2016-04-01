@@ -51,17 +51,18 @@ let mutable V' = Array.create (knapsack_size+1) 0
 let mutable weight = 0
 let mutable value = 0
 
-for i in 1..number_of_items do // doesn't work for number_items = 100...
+for i in 1..number_of_items do // doesn't work for number_of_items = 100...
     weight <- snd objects.[i]
     value <- fst objects.[i]
     for x in 0..knapsack_size do 
-        if x%10000 = 0 then printfn "%A %A" i x
+        // if x%10000 = 0 then printfn "%A %A" i x
         
         if x >= weight then  
-           V'.[x]<-max V.[x] ( V.[max 0 (x - weight) ] + value )
+           V'.[x]<-max V.[x] ( V.[(x - weight) ] + value )
                                   else
            V'.[x]<- V.[x]
-        V <- Array.copy V'
+    V <- Array.copy V'
+    // printfn "V'= %A" V'
 
 printfn "answer = %A" V.[knapsack_size] 
 //answer = 2493893
