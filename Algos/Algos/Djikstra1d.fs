@@ -1,5 +1,5 @@
 ﻿/////// solving Djikstra's shortest path algorithm in a directed graph ///////
-
+/////// final version ///////
 
 ///////////////// preparing the data ////////////////////
 
@@ -62,7 +62,7 @@ let graph =
         g.[nodelist.[i]] <- graphcore.[i]
     g
 
-let graph1 = [| []; [(2,0)];[(3,0)];[(1,1);(4,0);(5,0)];[];[];[(5,2);(6,2)]|]      
+let graph1 = [| []; [(2,0)];[(3,0)];[(1,1);(4,0);(5,0)];[];[];[(5,2);(4,2)]|]      
 let linear_graph2 = [| []; [(2,1)] ; [(3,1)];[(4,1)];[] |]
 let graph3 =[| []; [(2,1);(3,1)] ; [(4,1)];[(4,1)];[] |]
 
@@ -159,7 +159,7 @@ let Djikstra_with_path (graph: (int*int) list []) (S:int) (N:int)= // S = source
              D.[node]<-dist_to_S
              B.[node]<-[(S,node)]
     init_loop()
-    
+    // printfn "init ok"
     let one_loop() =
         // take the first element from the queue
         let z = PQ.RemoveFirst()
@@ -193,8 +193,6 @@ let Djikstra_with_path (graph: (int*int) list []) (S:int) (N:int)= // S = source
     for k in 1..N do one_loop()
                                         
     (A,(B|> Array.map List.rev)) // returns the array of all shortest paths with source A.[0]=limit doesn't mean anything.
-
-
 
 
 // stopWatch.Stop()

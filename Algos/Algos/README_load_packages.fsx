@@ -18,6 +18,12 @@ open FSharpx.Collections
 #r @"Spreads.Extensions.dll"
 
 open Spreads
+open Spreads.Collections
+
+#I @"C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algos\packages\MathNet.Numerics.FSharp.3.11.0\lib\portable-net45+sl5+netcore45+MonoAndroid1+MonoTouch1"
+#r @"MathNet.Numerics.FSharp.dll"
+
+open System.Numerics
 
 // let printSourceLocation() = 
 //     printfn "Line: %s" __SOURCE_DIRECTORY__

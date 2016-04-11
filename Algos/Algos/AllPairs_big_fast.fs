@@ -26,7 +26,7 @@ let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algos
 // for g3 finished in 105 sec
 // let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\PA4 - large_graph.txt"
 // the large graph has 1239 negative edges and 2330 distinct vertices from those edges
-// objects |> Array.filter (fun (a,b,c) -> c<0) |> Array.length // 1239
+//   // 1239
 // let y = objects |> Array.filter (fun (a,b,c) -> c<0) |> Array.map (fun(a,b,c)->(a,b))
 // let folder = fun list (a,b) -> a::(b::list)
 // y |> Array.fold folder [] |> List.distinct |> List.length // 2330
@@ -168,13 +168,7 @@ let FloydWarshall_with_path (edge_array:(int*int*int)[]) N M = // N=num_vertices
 // execute FloydWarshall
 
 // FloydWarshall objects num_vertices num_edges
-//let stopWatch2 = System.Diagnostics.Stopwatch.StartNew()
-//FloydWarshall_with_path objects num_vertices num_edges
-//printfn "FloydWarshall executed in:"
-//printfn "%f" stopWatch2.Elapsed.TotalMilliseconds
-//Console.ReadKey() |> ignore
-// 49 seconds
-
+// FloydWarshall_with_path objects num_vertices num_edges
 
 // answer for g3.txt
 //res = (-19, (399, 904))
@@ -247,94 +241,14 @@ let BellmanFord (edge_array:(int*int*int)[]) (S:int) N = // S=source N=num_verti
 //res.[904] = -19 gives the good answer
 /////////////////
 
-////// Solving the shortest path problem with Johnson's algorithm
-
-//// add an extra edge to the graph
-let johnson_array = Array.append objects [|for i in 1..num_vertices do yield (num_vertices+1,i,0)|]
-let magic_numbers = BellmanFord johnson_array (num_vertices+1) (num_vertices+1) //magic_numbers.[num_vertices+1]=0
-//thanks to magic_numbers, in the reweighted_edge_array all edges have positive length so we can use Djikstra algo
-let reweighted_edge_array = objects |> Array.map (fun (u,v,cost)->(u,v,(cost+ magic_numbers.[u]-magic_numbers.[v])))
-let reweighted_graph = Edge_Array_to_Graph reweighted_edge_array num_vertices // (int * int) list [] 
-reweighted_graph.[0]<-[]
-
-//reweighted_graph |> Array.map (List.filter (fun (a,b) -> a=0)) |> Array.map List.length |> Array.max
-// reweighted_graph 0 node is going nowhere and nobody is going to 0
 
 printfn "%f" stopWatch.Elapsed.TotalMilliseconds
+Console.ReadKey() |> ignore
 
-let stopWatch1 = System.Diagnostics.Stopwatch.StartNew()
+/// let objects1 = [|(1,2,-2);(2,3,-1);(3,1,4);(3,4,2);(3,5,-3);(6,4,1);(6,5,-4)|]
 
-
-///// Djikstra's shortest path algo for single-source and positive length graphs /////
-///// returns an array with shortest path distances /////
-
-let Djikstra_with_path (graph: (int*int) list []) (S:int) (N:int)= // S = source
-    let V = [0..N] |> List.filter (fun s -> not(s=S))
-    let A = Array.create (N+1) limit // on ne se sert pas de A.[0]
-    A.[S] <- 0
-
-    //
-    let B = Array.create (N+1) [] 
-    //
-    let C = Array.create (N+1) -1 // stores the index of the element in X nearest to an element in V.
-    let D = Array.create (N+1) limit // stores the value of Dijkstra criterion
-
-    let inX = Array.create (N+1) false // remembers if the node is in X (= has been processed)
-    inX.[S]<-true
-
-    let PQ = new SortedDeque<int*int>() // Key = distance to X ; Value = Node 
-    let GetIndexOf (heap:SortedDeque<int*int>) elem = 
-        try Some (heap.IndexOfElement elem) with | :? System.ArgumentOutOfRangeException -> None
-
-    let init_loop () : unit =
-        for node in V do
-            PQ.Add (limit,node)      
-        for (node,dist_to_S) in graph.[S] do
-             PQ.RemoveAt (PQ.IndexOfElement (limit,node)) |> ignore
-             PQ.Add (dist_to_S,node) |> ignore
-             C.[node]<-S
-             D.[node]<-dist_to_S
-             B.[node]<-[(S,node)]
-    init_loop()
-    // printfn "init ok"
-    let one_loop() =
-        // take the first element from the queue
-        let z = PQ.RemoveFirst()
-        let W = snd z
-        let l = fst z
-        A.[W]<- l
-        // maintain the heap
-        // the Key must the Dijkstra criterion
-        let update_list = graph.[W]
-        update_list 
-          |> List.iter
-               ( fun (node,dist) -> 
-                    if (inX.[node]=true) 
-                       then ()
-                       else let x = l+dist                                                    
-                            if x > D.[node] then ()
-                                            else 
-                                                match GetIndexOf PQ (D.[node],node) with 
-                                                  | None -> printfn "error at node %d with temp=%d" node D.[node]
-                                                            printfn "update_list = %A" update_list
-                                                            failwith "stopping program"
-                                                  | Some i ->  PQ.RemoveAt i |> ignore // updater le node                
-                                                               PQ.Add (x,node)
-                                                               C.[node]<- W // prédécesseur
-                                                               D.[node]<- x // update la distance à X      
-                                                               B.[node]<- (W,node)::B.[W]                          
-                              ) 
-        inX.[W] <- true
-    
-
-    for k in 1..N do one_loop()
-                                        
-    (A,(B|> Array.map List.rev)) // returns the array of all shortest paths with source A.[0]=limit doesn't mean anything.
-
-
-printfn "num_vertices = %A" num_vertices
-
-// pre-processing
+// the large graph has 1239 negative edges and 2330 distinct vertices from those edges
+//   // 1239
 let neg_edges = objects |> Array.filter (fun (a,b,c) -> c<0) |> Array.map (fun(a,b,c)->(a,b))
 let folder_out = fun setacc (a,b)  -> (Set.add a setacc )
 let folder_in  = fun setacc (a,b)  -> (Set.add b setacc )
@@ -343,39 +257,33 @@ let vertices_with_in_neg_edges = neg_edges |> Array.fold folder_in Set.empty<int
 let start_candi = Set.filter (fun e -> (Set.contains e vertices_with_in_neg_edges)=false) vertices_with_out_neg_edges
 let end_candi = Set.filter (fun e -> (Set.contains e vertices_with_out_neg_edges)=false) vertices_with_in_neg_edges
 
-// the shortest shortest path start point has no incoming negative edge. one of its negative edge is the first edge of the graph.
+
+//let BellmanFord_adapted (edge_array:(int*int*int)[]) (S:int) N = // S=source N=num_vertices, M=num_edges 
+//   let reversegraph = Edge_Array_to_ReverseGraph edge_array N
+//   let mutable A = Array.create (N+1) limit // we don't use .[0]
+//   let A'= Array.create (N+1) 0 // A.[i,v] is the answer of the subproblem with #edges <=i and destination v
+//                                    // but we use space optimization with A.[v]=A.[i-1,v] and A'.[v]=A.[i,v]
 //
-
-
-
-// returns the minimum + index of the minimum
-let mini (s : int list) = 
-         match s with 
-            | [] -> (-1,-1)
-            | _  -> s |> Seq.mapi (fun i x -> (i, x)) |> Seq.minBy snd
-
-let mutable answer = limit
-let mutable answer_path :(int*int)list= []
-
-for u in start_candi do // for u in 1..num_vertices do
-    let (A,B) = Djikstra_with_path reweighted_graph u num_vertices
-    let (u_min_index,u_min) = ([ for v in 0..num_vertices do yield A.[v]-magic_numbers.[u]+magic_numbers.[v] ] |> mini)
-    if u_min < answer then answer <- u_min
-                           answer_path <-B.[u_min_index]
-      
-printfn "answer = %A" answer
-printfn "answer_path=%A" answer_path
-
-//let res = [| for u in 1..num_vertices do
-//               let (A,B) = Djikstra_with_path reweighted_graph u num_vertices
-//               yield ([| for v in 0..num_vertices do yield A.[v]-magic_numbers.[u]+magic_numbers.[v] |] |> Array.min) |]
-
-
-printfn "%f" stopWatch1.Elapsed.TotalMilliseconds
-Console.ReadKey() |> ignore
-
-/// let objects1 = [|(1,2,-2);(2,3,-1);(3,1,4);(3,4,2);(3,5,-3);(6,4,1);(6,5,-4)|]
-
-// Johnson's algo with pre-preprocessing runs in 32 seconds with optimization on g3
-
-//// end of Johnsons algorithm
+//   A.[S]<-0 
+//   let mutable i = 1
+//   let mutable more = true
+//   let mutable active_list = ([1..N] |>List.filter (fun e->not(e=S)))
+//   while (more=true) do  
+//       for v in active_list do
+//           // A.[i,v]<- min A.[i-1,v] ([for (u,c_uv) in reversegraph.[v] do yield A.[i-1,u]+c_uv ] |> List.min)
+//           A'.[v]<- min A.[v] ([for (u,c_uv) in reversegraph.[v] do yield A.[u]+c_uv ] |> List.min)
+//       A <- Array.copy A'
+//       i <- i+1
+//       active_list <- active_list |> List.filter (fun e->)
+//       more <- i<=(N-1) && Array.min (Array.tail A) <0
+//       // printfn "A.[%A] = %A " i A
+//   // printfn "res BellmanFord= %A" A
+//   printfn "i=%A" i
+//   A
+//
+//let mutable m = limit
+//let mutable tmp =0
+//for u in vertices_with_neg_edges do
+//    tmp <- Array.min( Array.tail (BellmanFord_adapted objects u num_vertices))
+//    if tmp <m then m<-tmp
+//printfn "shortest path distance = %A" m

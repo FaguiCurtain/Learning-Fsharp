@@ -1,5 +1,5 @@
 ﻿/////// solving Djikstra's shortest path algorithm in a directed graph ///////
-
+/////// returns the distance of the shortest path, works only with positive (or 0) length edges. no negative edges allowed //////
 
 ///////////////// preparing the data ////////////////////
 
@@ -12,7 +12,7 @@ open Spreads.Collections
 
 let stopWatch = System.Diagnostics.Stopwatch.StartNew()
 
-let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\PA5 - dijkstraData.txt"
+let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algos\Algos\Stanford Algo I\Algo I - PA5 - dijkstraData.txt"
 // let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\PA5 - test4.txt"
 // val x : string [] =
 
@@ -55,7 +55,7 @@ let N=N2
 
 // non-optimized construction
 
-let graph = 
+let graph = // (int*int)list []
     let g = Array.create (N+1) []
     for i in 0..((Array.length nodelist)-1) do
         g.[nodelist.[i]] <- graphcore.[i]
@@ -67,10 +67,11 @@ let reversegraph = // (int*int) list []
     for i in 1..N do
         graph.[i] |> List.iter (fun (node,value) -> rg.[node] <- (i,value)::rg.[node] )
     rg
-        
-
+ 
+let graph1 = [| []; [(2,0)];[(3,0)];[(1,1);(4,0);(5,0)];[];[];[(5,2);(6,2)]|]      
 
 /////////////////// DJIKSTRA ///////////////////
+
 let limit = 1000000 // max distance limit
 let S = 1 // Source
 let V = [0..N] |> List.filter (fun s -> not(s=S));;
@@ -84,10 +85,9 @@ let inX = Array.create (N+1) false // remembers if the node is in X (= has been 
 inX.[S]<-true
 
 let PQ = new SortedDeque<int*int>() // Key = distance to X ; Value = Node 
+// let PQ = new SortedDeque<int*int>(num_edges)
 let GetIndexOf (heap:SortedDeque<int*int>) elem = 
     try Some (heap.IndexOfElement elem) with | :? System.ArgumentOutOfRangeException -> None
-
-
 
 let init_loop () : unit =
     for node in V do
@@ -100,7 +100,7 @@ let init_loop () : unit =
 init_loop()
 
 let PP () =
-    for i in 0..(PQ.Count-1) do (printfn "PQ %i %A" i PQ.[i]);;
+    for i in 0..(PQ.Count-1) do (printfn "PQ %i %A" i PQ.[i])
 
  // code to double check everything and DEBUG
 let check() : unit=
@@ -182,4 +182,3 @@ let BB = [0..N] |> List.filter (fun s-> not(B.[s]=0))
 // [for i in BB do yield B.[i]] // donne un résultat similaire...
 // 
 
- 
