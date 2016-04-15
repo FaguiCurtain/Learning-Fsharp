@@ -56,7 +56,8 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <None Include="README_load_packages.fsx" />
-    <Compile Include="AllPairs_big.fs" />
+    <None Include="FSharp.Charting.fsx" />
+    <Compile Include="TSP.fs" />
     <None Include="App.config" />
     <Content Include="packages.config" />
   </ItemGroup>

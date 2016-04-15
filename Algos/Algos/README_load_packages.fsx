@@ -20,6 +20,10 @@ open FSharpx.Collections
 open Spreads
 open Spreads.Collections
 
+#I @"C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algos\Algos\packages\FSharp.Charting.0.90.13\lib\net40"
+#r @"FSharp.Charting.dll"
+
+//open FSharp.Charting
 #I @"C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algos\packages\MathNet.Numerics.FSharp.3.11.0\lib\portable-net45+sl5+netcore45+MonoAndroid1+MonoTouch1"
 #r @"MathNet.Numerics.FSharp.dll"
 

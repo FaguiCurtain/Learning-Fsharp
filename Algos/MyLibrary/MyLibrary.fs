@@ -1,11 +1,7 @@
 ﻿// useful functions
 
 // returns the minimum + index of the minimum
-namespace MyLibrary
-
-namespace MyLibrary.MyUsefulFunctions
-
-exception InnerError of string
+namespace Misc
 module Search =
    let mini (s : (int*int) list) = 
          match s with 
@@ -17,24 +13,7 @@ module Search =
             | [] -> (-1,(-1,-1))
             | _  -> s |> Seq.mapi (fun i x -> (i, x)) |> Seq.maxBy snd
 
-module Bitwise = 
-   let rec sumbits (n:int):int=
-      let rec helper acc m =
-         match m with
-            | 0 -> acc
-            | 1 -> acc+1 // enlever cela ?
-            | _ -> let r = m%2
-                   helper (acc+r) (m>>>1)
-      helper 0 n
-
-   let power2 k = 
-     let powers_of_2 = [|1;2;4;8;16;32;64;128;256;512;1024;2048;4096;8192;16384;32768;65536;131072;262144;524288;1048576;2097152;4194304;8388608;16777216|]
-     if ((k >= 25) || (k<0)) then raise (InnerError("power exponent not allowed"))
-        else powers_of_2.[k]
-
-    
-
-namespace MyLibrary.MyCollections
+namespace Collections
 module UnionFind = 
    type Node = { Parent:int ; Rank:int}
 
@@ -103,11 +82,12 @@ module graph =
        // let n_nodes
         let l1 = edges |> List.map (fun (a,b,c)->a) 
         let l2 = edges |> List.map (fun (a,b,c)->b)
-        let n_nodes = List.append l1 l2 |> List.distinct |> List.length
+        // let n_nodes = (List.append l1 l2) |> List.distinct |> List.length //List.distinct doesn't work ??? why ???
+        let n_nodes = (List.append l1 l2) |> Seq.distinct  |> List.ofSeq |> List.length
 
         let num_step = n_nodes-num_clusters
 
-        let p = MyLibrary.MyCollections.UnionFind.Partition(n_nodes)
+        let p = Collections.UnionFind.Partition(n_nodes)
 
         let mutable union_count = 0
 

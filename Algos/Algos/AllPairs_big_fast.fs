@@ -256,34 +256,55 @@ let vertices_with_out_neg_edges = neg_edges |> Array.fold folder_out Set.empty<i
 let vertices_with_in_neg_edges = neg_edges |> Array.fold folder_in Set.empty<int> // |> Set.count // 2330
 let start_candi = Set.filter (fun e -> (Set.contains e vertices_with_in_neg_edges)=false) vertices_with_out_neg_edges
 let end_candi = Set.filter (fun e -> (Set.contains e vertices_with_out_neg_edges)=false) vertices_with_in_neg_edges
+let num_start_candi = Set.count start_candi
+let num_end_candi  = Set.count end_candi
+
+let G  = Edge_Array_to_Graph objects num_vertices
+let RG = Edge_Array_to_ReverseGraph objects num_vertices
+
+let num_incoming_edges = RG |> Array.map List.length
+num_incoming_edges.[0]<-0
+
+let enqueue_list (Q:Queue<'T>) (list:'T list)=
+    for v in list do Q.Enqueue v
+
+/// not finished i don't see how this approach can work
 
 
-//let BellmanFord_adapted (edge_array:(int*int*int)[]) (S:int) N = // S=source N=num_vertices, M=num_edges 
-//   let reversegraph = Edge_Array_to_ReverseGraph edge_array N
-//   let mutable A = Array.create (N+1) limit // we don't use .[0]
-//   let A'= Array.create (N+1) 0 // A.[i,v] is the answer of the subproblem with #edges <=i and destination v
-//                                    // but we use space optimization with A.[v]=A.[i-1,v] and A'.[v]=A.[i,v]
-//
-//   A.[S]<-0 
-//   let mutable i = 1
-//   let mutable more = true
-//   let mutable active_list = ([1..N] |>List.filter (fun e->not(e=S)))
-//   while (more=true) do  
-//       for v in active_list do
-//           // A.[i,v]<- min A.[i-1,v] ([for (u,c_uv) in reversegraph.[v] do yield A.[i-1,u]+c_uv ] |> List.min)
-//           A'.[v]<- min A.[v] ([for (u,c_uv) in reversegraph.[v] do yield A.[u]+c_uv ] |> List.min)
-//       A <- Array.copy A'
-//       i <- i+1
-//       active_list <- active_list |> List.filter (fun e->)
-//       more <- i<=(N-1) && Array.min (Array.tail A) <0
-//       // printfn "A.[%A] = %A " i A
-//   // printfn "res BellmanFord= %A" A
-//   printfn "i=%A" i
-//   A
-//
-//let mutable m = limit
-//let mutable tmp =0
-//for u in vertices_with_neg_edges do
-//    tmp <- Array.min( Array.tail (BellmanFord_adapted objects u num_vertices))
-//    if tmp <m then m<-tmp
-//printfn "shortest path distance = %A" m
+let MyBFS (graph: (int*int) list []) = // adaptation of Breadth First Search to this problem
+    
+    let eliminated = Array.create (num_vertices+1) true // if true, we don't need to test that vertex as the 1st vertex of the shortest shortest path
+    for v in start_candi do eliminated.[v] <-false
+
+    let MyBFS_sub (S:int) = 
+         let best_so_far_dist_to_S = Array.create (num_vertices+1) false
+         best_so_far_dist_to_S.[S]=0
+         let rank = Array.create (num_vertices+1) -1
+         rank.[S]<-0
+         let predec = Array.create (num_vertices+1) -1
+         predec.[S]<-0
+         let mutable more = true
+         let Queue = new Queue<int>()
+         let mutable best_so_far=0
+         Queue.Enqueue S
+         
+         let isProcessed = Array.create (num_vertices+1) false
+         isProcessed.[S] <- true
+
+         // let number_of_visits = Array.create (num_vertices+1) = 0 
+             
+             while (more = true) do 
+                   let u = Queue.Dequeue()
+                   let nodelist = graph.[u]
+                   for (v,c_uv) in nodelist do
+                       let d = best_so_far_dist_to_S.[u] + c_uv
+                       let d_v = best_so_far_dist_to_S.[v]
+                    
+                       if d < d_v then best_so_far_dist_to_S.[v] <- d
+                                       if d < best_so_far then best_so_far <- d
+                                       rank.[v] <- rank.[u]+1
+                                       predec.[v]<-u
+                                       if (d<0) & (start_candi.Contains v=true) then eliminated.[v]=true
+                       if isProcessed.[v]=false then Queue.Enqueue v
+
+                   isProcessed.[u] <-true
