@@ -6,7 +6,9 @@ open System.IO
 
 let stopWatch = System.Diagnostics.Stopwatch.StartNew()
 
-let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\PA 6 - 2sum.txt"
+// let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\PA 6 - 2sum.txt"
+
+let x = File.ReadAllLines "/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/Algo Stanford/PA 6 - 2sum.txt"
 
 let y = x |> Array.map int64
 
@@ -78,3 +80,4 @@ stopWatch.Stop()
 printfn "%f" stopWatch.Elapsed.TotalMilliseconds
 Console.ReadKey() |> ignore
 
+// answer = 427

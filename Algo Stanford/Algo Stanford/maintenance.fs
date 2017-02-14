@@ -10,7 +10,9 @@ open FSharpx.Collections
 
 let stopWatch = System.Diagnostics.Stopwatch.StartNew()
 
-let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\PA6 - Median.txt"
+// let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\PA6 - Median.txt"
+let x = File.ReadAllLines "/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/Algo Stanford/PA6 - Median.txt"
+
 let list = x |> Array.map (fun s -> int s) |> Array.toList
 
 //let lowheap  = new PriorityQueue<int,int>() // support extract max

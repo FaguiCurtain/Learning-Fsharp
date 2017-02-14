@@ -16,13 +16,16 @@ let stopWatch = System.Diagnostics.Stopwatch.StartNew()
 //[value_1] [weight_1]
 //[value_2] [weight_2]
 
-//let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\PA3 - knapsack_big.txt"
-let x = File.ReadAllLines "C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\PA3 - knapsack1.txt"
+let x = File.ReadAllLines "/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/Algo Stanford/PA3 - knapsack_big.txt"
+// let x = File.ReadAllLines "/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/Algo Stanford/PA3 - knapsack1.txt"
+
+// big file answer in 17 sec in Debug mode
+
 
 let split (text:string)=
     text.Split [|'\t';' '|]
 
-let splitIntoValues (A: 'T[]) =  
+let splitIntoValues (A: string[]) =  
     (int A.[0],int A.[1])
 
 let parseHeader (line:string)=
@@ -130,3 +133,4 @@ printfn "res = %A" res
 
 printfn "%f" stopWatch1.Elapsed.TotalMilliseconds
 Console.ReadKey() |> ignore
+
