@@ -2,7 +2,7 @@
 
 // PC laptop
 // #r @"C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\packages\FSharpx.Collections.1.13.4\lib\net40\FSharpx.Collections.dll"
-#r @"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/Algo Stanford/packages/FSharpx.Collections.1.15.2/lib/net40/FSharpx.Collections.dll"
+#r @"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/packages/FSharpx.Collections.1.15.2/lib/net40/FSharpx.Collections.dll"
 
 //don't forget to type in F# interactive
 

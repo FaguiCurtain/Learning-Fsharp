@@ -1,4 +1,5 @@
 ﻿///////////////// preparing the data ////////////////////
+module AlgoII_PA1_Greedy
 
 open System
 open System.Collections.Generic
@@ -11,7 +12,7 @@ open FSharpx.Collections
 let stopWatch = System.Diagnostics.Stopwatch.StartNew()
 
 
-let x = File.ReadAllLines "/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/Algo Stanford/PA1 - jobs.txt"
+let x = File.ReadAllLines "/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/Algos/Algos/Stanford Algo II/Algo II - PA1 - jobs.txt"
 
 // format of the files
 // [number_of_jobs]
@@ -21,7 +22,7 @@ let x = File.ReadAllLines "/Users/francois-guillaume.rideau/Documents/Learning-F
 let split (text:string)=
     text.Split [|'\t';' '|]
 
-let splitIntoValues (A: 'T[]) =  
+let splitIntoValues (A: string []) =  
     (int64 A.[0],int64 A.[1])
 
 let parseHeader (line:string)=

@@ -1,0 +1,22 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "The42project", "The42project\The42project.fsproj", "{B90D3DBA-F040-4A29-82C2-A0305E587554}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{F664E36C-5D06-41E1-98C3-0822945DCCED}"
+	ProjectSection(SolutionItems) = preProject
+		README_load_packages.fsx = README_load_packages.fsx
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B90D3DBA-F040-4A29-82C2-A0305E587554}.Debug|x86.ActiveCfg = Debug|x86
+		{B90D3DBA-F040-4A29-82C2-A0305E587554}.Debug|x86.Build.0 = Debug|x86
+		{B90D3DBA-F040-4A29-82C2-A0305E587554}.Release|x86.ActiveCfg = Release|x86
+		{B90D3DBA-F040-4A29-82C2-A0305E587554}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+EndGlobal
