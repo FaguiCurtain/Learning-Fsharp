@@ -21,7 +21,11 @@ open FSharpx.Collections
 // #r @"C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\packages\FSharp.Data.2.3.2\lib\net40\FSharp.Data.dll"
 
 // MAC
-#r @"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/Algo Stanford/packages/FSharp.Data.2.3.2/lib/net40/FSharp.Data.dll"
+#r @"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/packages/FSharp.Data.2.3.2/lib/net40/FSharp.Data.dll"
+
+
+
+
 
 // let printSourceLocation() = 
 //     printfn "Line: %s" __SOURCE_DIRECTORY__

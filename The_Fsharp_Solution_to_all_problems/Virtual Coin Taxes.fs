@@ -1,4 +1,6 @@
-﻿open System
+﻿module VirtualCoinTaxes
+
+open System
 open System.Collections.Generic
 open System.IO
 

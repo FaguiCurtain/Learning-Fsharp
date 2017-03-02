@@ -7,19 +7,27 @@ open System.IO
 open FSharp.Data
 
 module Definitions = 
+   
+   // naive way with arrays
 
-   let Currencies = 
-    [|"JPY";"BTC";"ETH";"EUR";"USD"|]
+   //let Currencies = 
+   // [|"JPY";"BTC";"ETH";"EUR";"USD"|]
 
-   let get_Currency_code s =
-    Array.findIndex (fun e -> e=s) Currencies
+   //let get_Currency_code s =
+   // Array.findIndex (fun e -> e=s) Currencies
 
-   let num_currencies = Array.length Currencies
+   //let num_currencies = Array.length Currencies
  
+   // more F# like
+
+   type Currency = JPY | BTC | ETH | DAO | EUR | USD | BTCUSD | ETHBTC | DAOETH | EURUSD
+   let  Currency_list = [JPY;BTC;ETH;DAO;EUR;USD;BTCUSD;ETHBTC;DAOETH;EURUSD]
+
+
 
    type transaction_details = 
     {time     : DateTime ;
-     pair     : string   ;
+     pair     : Currency * Currency  ;
      size     : float    ;
      price    : float    ;
      fee      : float    ;
@@ -27,9 +35,9 @@ module Definitions =
 
    type transaction_quark_details =
     {time     : DateTime ;
-     asset     : string   ;
+     currency : Currency   ;
      size     : float    ;
-     jpyprice    : float    ;
+     jpyprice : float    ;
      fee      : float    ;
      }
 
@@ -40,31 +48,101 @@ module Definitions =
 
    type transaction_DB = Dictionary<id,transaction_details>
    type transaction = id * transaction_details
-   type transaction_quark_DB = Dictionary<id1,transaction_details>
+   type transaction_quark_DB = Dictionary<id1,transaction_quark_details>
 
-   type price_timeseries = Dictionary<DateTime,float> // (key = date, value = price)
+   type price = float
+   type price_timeseries = Dictionary<DateTime,price> // (key = date, value = price)
+   type price_table = Dictionary<Currency,price_timeseries>
 
+module PriceTable = 
+    open Definitions
+    //constructor
+    let create_empty() = new price_table()
+    let create_empty_series() = new price_timeseries()
+
+    /// initialize a price table with empty series for each available currency
+    let init() = 
+               let d = create_empty() 
+               for cur in Currency_list do d.Add(cur,create_empty_series())
+               d
+    
+    /// get the Daily price of a currency at a given date
+    let get_currency_price (price_table:price_table) (cur,time:DateTime) =
+        (price_table.[cur]).[time.Date]
+    
+    /// converts a date in UNIX POSIX format into DateTime
+    let toDateTime (timestamp:int) =
+        let start = DateTime(1970,1,1,0,0,0,DateTimeKind.Utc)
+        start.AddSeconds(float timestamp).ToLocalTime()
+    
+    /// computes the price series of the 2nd currency from the first one. price_table.[cur2] must be empty before this call
+    let map_series (price_table:price_table)(cur1:Currency,cur2:Currency)(f: float -> float)=
+        let K = price_table.[cur1].Keys |> Seq.toList
+        for t in K do
+            price_table.[cur2].Add (t,f (price_table.[cur1].[t]))
+
+    /// re-computes the price series of the currency
+    let remap_series (price_table:price_table)(cur:Currency)(f: float -> float)=
+        let K = price_table.[cur].Keys |> Seq.toList
+        let mutable tmp = 0.0
+        for t in K do
+            let tmp = f (price_table.[cur].[t])
+            price_table.[cur].[t] <- tmp
+    
+    /// compute the priceseries of the 3rd currency from the first two. price_table.[cur3] must be empty before this call
+    let cross_2_series (price_table:price_table)(cur1:Currency,cur2:Currency,cur3:Currency)(f: float -> float -> float) =
+        let K1 = price_table.[cur1].Keys |> Seq.toList
+        let K2 = price_table.[cur2].Keys |> Seq.toList
+        let K = Set.intersect (set K1) (set K2) |> Set.toList
+
+        for t in K do
+            let a = price_table.[cur1].[t]
+            let b = price_table.[cur2].[t]
+            price_table.[cur3].Add (t,f a b)
+       
+
+    let multiply_float (a:float) (b:float) = a * b
+    let divide_float   (a:float) (b:float) = a / b
+               
 module MyTransactions = 
 
    open Definitions
+   open PriceTable
+
    // constructor
 
    let create_empty () = new transaction_DB()
 
-   let (a:idd) = ("s", A)
+   /// breaks a pair transaction (buy CUR1, sell CUR2) into (buy CUR1,sell JPY)+(sell CUR2, buy JPY) transaction for accounting purposes
+   let break_into_quark (myT:transaction)(price_table:price_table) =
+       let id = fst myT
+       let tr_d=snd myT
 
+       let t = tr_d.time
+       let (a,b) = tr_d.pair
+       let p = tr_d.price
 
+       ( ((id,A),{time = t;
+                  currency = a;
+                  size = tr_d.size;
+                  jpyprice = p * (get_currency_price (price_table)(b,t) )
+                  fee = tr_d.fee*get_currency_price (price_table)(EUR,t)}),
+         ((id,B),{time = t;
+                  currency = b;
+                  size = -tr_d.size * p;
+                  jpyprice = (get_currency_price (price_table)(b,t) )
+                  fee = 0.0}) )
 
+   /// breaks transactions for the whole transaction DataBase     
+   let make_quark (myT: transaction_DB)(price_table:price_table) = 
+        let dict = new transaction_quark_DB()
+        for id in myT.Keys do
+            let (t1,t2) = break_into_quark (id,myT.[id]) price_table
+            dict.Add(fst t1,snd t1)
+            dict.Add(fst t2,snd t2)
+        dict
 
-   let compute_jpyprice (myT:transaction_DB)(jpy_priceseries:price_timeseries) id = 
-       let tr_details = myT.[id]
-       let d = tr_details.time
-       myT.Remove(id) |> ignore
-       let new_details = {tr_details with jpyprice=tr_details.price*jpy_priceseries.[d.Date]}
-       myT.Add(id,new_details)
-   let update_jpyprice (myT:transaction_DB)(jpy_priceseries:price_timeseries)(id_list:id list) =
-       for id in id_list do
-           compute_jpyprice myT jpy_priceseries id   
+   /// generate the next ID
    let increase_ID (id_num:string) = 
        let s =string((int id_num.[2..5])+1)
        let pre = id_num.[0..1]
@@ -75,30 +153,18 @@ module MyTransactions =
          | 3 -> pre+"0"  + s
          | 4 -> pre+ s
          | _ -> "" // should not happen
+
    type t_size = float
    type queue_details = {size_left : float}
-   type transaction_backlog =  (id * queue_details) list
-   type taxable_event_details = {log: (id * id * t_size) ; // (first_transaction_id , second_transaction_id , size_used)
+   type transaction_backlog =  (id1 * queue_details) list
+   type taxable_event_details = {log: (id1 * id1 * t_size) ; // (first_transaction_id , second_transaction_id , size_used)
                             PL : float}
    type taxable_event = id * taxable_event_details //taxable_event_id * taxable_event_details
-// let t:taxable_event = ("TE0001",{log=("ID0001","ID0003",50.0); PL=5000.0})
-// let rec evolve_state0 (backlog : int list, taxableevent: int list, x:int) =
-//    match backlog with 
-//         | [] -> ([x],taxableevent)
-//         |  _ -> if (sign(backlog.Head)=sign(x)) then (List.append backlog [x],taxableevent)
-//                 else let a = backlog.Head
-//                      if (a>0) then 
-//                           if (a+x> 0) then ((a+x)::backlog.Tail,(-x)::taxableevent)
-//                           elif (a+x =0) then  (backlog.Tail,(-x)::taxableevent)
-//                           else evolve_state0 (backlog.Tail,(a::taxableevent),a+x)
-//                      else 
-//                           if (a+x< 0) then ((a+x)::backlog.Tail,(x::taxableevent))
-//                           elif (a+x=0) then (backlog.Tail,x::taxableevent)
-//                           else evolve_state0 (backlog.Tail,(-a)::taxableevent, a+x)
 
-   let rec evolve_state1 (myT:transaction_DB)(backlog : (id*t_size) list,taxableevent: taxable_event list) (x:id*t_size) =
+   /// first-in first-out method helper function. one currency
+   let rec evolve_state1 (myT:transaction_quark_DB)(backlog : (id1*t_size) list,taxableevent: taxable_event list) (x:id1*t_size) =
        let s2 = snd x
-       let p2 = myT.[fst x].price
+       let p2 = (myT.[fst x]).jpyprice
        let te_num= 
            match taxableevent with
              | [] -> "TE0000"
@@ -106,7 +172,7 @@ module MyTransactions =
        match backlog with 
          | [] -> ([x],taxableevent)
          |  _ -> let s1 = snd backlog.Head 
-                 let p1 = myT.[fst backlog.Head].price
+                 let p1 = myT.[fst backlog.Head].jpyprice
       
                  if (sign(s1)=sign(s2)) then (List.append backlog [x],taxableevent)
                    else 
@@ -125,60 +191,40 @@ module MyTransactions =
                            elif (s1+s2 =0.0) then  (backlog.Tail,(te_num1,{log=(id1,id2,s1);PL=s2*(p1-p2)})::taxableevent)
                            else evolve_state1 myT ((backlog.Tail),((te_num1,{log=(id1,id2,s1);PL=s1*(p2-p1)})::taxableevent)) (id2,s1+s2)
                                                                            
-   let make_taxable_event1 (myT:transaction_DB)(id_list:id list) = // makes sense only if all id are transactions in the same currency.
-       let transaction_list:(id*t_size) list = [ for x in id_list -> (x,myT.[x].size) ]
+   let make_taxable_event1 (myT:transaction_quark_DB)(id1_list:id1 list) = // makes sense only if all id are transactions in the same currency.
+       let transaction_list:(id1*t_size) list = [ for x in id1_list -> (x,myT.[x].size) ]
        let rec myfun acc l = 
            match l with 
              | []   -> acc
              | e::t -> myfun (evolve_state1 myT acc e) t  // attention aux parenthèses !!!!
        myfun ([],[]) transaction_list 
-// make_taxable_event1 ["ID0001";"ID0002";"ID0003";"ID0004"]
-   let evolve_state2 (myT:transaction_DB)(multiccy_backlog: ((id*t_size) list) [],taxableevent:taxable_event list)(x:id*t_size)=
-       let cur = myT.[fst x].pair
-       let i = get_Currency_code cur
-       let new_state_cur = evolve_state1 myT (multiccy_backlog.[i],taxableevent) x
-       multiccy_backlog.[i] <- fst new_state_cur
+
+
+   let evolve_state2 (myT:transaction_quark_DB)(multiccy_backlog: Dictionary<Currency,(id1*t_size) list> ,taxableevent:taxable_event list)(x:id1*t_size)=
+       let cur = myT.[fst x].currency
+
+       let new_state_cur = evolve_state1 myT (multiccy_backlog.[cur],taxableevent) x
+       multiccy_backlog.[cur] <- fst new_state_cur
        (multiccy_backlog,snd new_state_cur)
  
-   let make_taxable_event2 (myT:transaction_DB)(id_list:id list) = 
-       let transaction_list:(id*t_size) list = [ for x in id_list -> (x,myT.[x].size) ]
+   let make_taxable_event2 (myT:transaction_quark_DB)(id1_list:id1 list) = 
+       let transaction_list:(id1*t_size) list = [ for x in id1_list -> (x,myT.[x].size) ]
        let rec myfun acc l = 
            match l with 
              | []   -> acc
              | e::t -> myfun (evolve_state2 myT acc e) t  // attention aux parenthèses !!!!
-       let empty_state = Array.create num_currencies []
+       let empty_state = let d = new Dictionary<Currency,(id1*t_size) list>()
+                         for cur in Currency_list do d.Add(cur,[])
+                         d
+
        myfun (empty_state,[]) transaction_list 
+   
+   let make_summary (taxableevent:taxable_event list) = 
+       taxableevent |> List.fold (fun acc event -> acc + (snd event).PL) 0.0
 
-   let all_transaction_id (myT:transaction_DB) = Seq.toList myT.Keys
+   let get_sort_id1_list_by_date (myT:transaction_quark_DB)=
+       myT.Keys |> Seq.toList // this is not necessarily sorted
+                |> List.sortBy (fun id1 -> (myT.[id1]).time.Date)
 
 
-
-// let x = File.ReadAllLines "/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/Algo Stanford/trades.csv"
-   //let rawfile = CsvFile.Load("/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/Algo Stanford/trades.csv")
-
-   //let buy_or_sell (order)=
-   //    match order with
-   //      | "buy"  -> 1.0
-   //      | "sell" -> -1.0
-   //      | _ -> 0.0       // should not happen
-
-   //for row in rawfile.Rows do
-
-   //    MyTransactions.Add(row.GetColumn("txid"),{time=System.DateTime.Parse (row.GetColumn("time"));
-   //                                              pair=  row.GetColumn("pair");
-   //                                              size=  float ( buy_or_sell(row.GetColumn("type")) * float (row.GetColumn("vol")));                                         
-   //                                              price= float (row.GetColumn("price"));
-   //                                              fee=   float (row.GetColumn("fee"))
-   //                                              jpyprice= 0.0}    )
-
-   //printfn "%f" (MyTransactions.["TRSYD5-F2NKZ-KHQ6WB"].size) // ligne 58 du fichier CSV 
-
-   //let jpy = CsvFile.Load("http://ichart.finance.yahoo.com/table.csv?s=JPY=X").Cache()
-   //let eur = CsvFile.Load("http://ichart.finance.yahoo.com/table.csv?s=EUR=X").Cache()
-
-   //let jpy_priceseries1 = new price_timeseries()
-
-   //[ for row in jpy.Rows -> System.DateTime.Parse (row.GetColumn("Date")), float (row.GetColumn("Close"))]
-   //     |> List.filter (fun (d,p)-> d>=System.DateTime.Parse("01-11-2016"))
-   //     |> List.iter (fun (d,p) -> jpy_priceseries1.Add(d,p))
  
