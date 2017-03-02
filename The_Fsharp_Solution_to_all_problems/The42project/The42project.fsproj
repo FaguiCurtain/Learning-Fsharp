@@ -104,10 +104,10 @@
     <Compile Include="..\README_load_packages.fsx">
       <Link>README_load_packages.fsx</Link>
     </Compile>
-    <Compile Include="..\Virtual Coin Taxes_v2.fs">
-      <Link>Virtual Coin Taxes_v2.fs</Link>
+    <Compile Include="..\Virtual Coin Taxes_v3.fs">
+      <Link>Virtual Coin Taxes_v3.fs</Link>
     </Compile>
-    <Compile Include="Virtual Coin Program v2.fs" />
+    <Compile Include="Virtual Coin Program v3.fs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(FSharpTargetsPath)" />
