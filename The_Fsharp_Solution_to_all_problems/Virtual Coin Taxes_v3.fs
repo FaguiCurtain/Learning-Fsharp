@@ -3,6 +3,7 @@
 open System
 open System.Collections.Generic
 open System.IO
+open Microsoft.FSharp.Reflection
 
 open FSharp.Data
 
@@ -20,20 +21,64 @@ module Definitions =
  
    // more F# like
 
-   type Currency = JPY | BTC | ETH | DAO | EUR | USD | BTCUSD | ETHBTC | DAOETH | EURUSD with
+   type Currency = JPY | BTC     | ETH    | EUR    | USD 
+                       | BTCUSD  | ETHBTC | EURUSD
+                       | ARDR    | BTS    | DAO    | DGD    | ETC    | FCT    | LTC    | MAID    | NXT    | REP    | SC    | SDC    | SYS    | XMR    | XRP
+                       | ARDRBTC | BTSBTC | DAOETH | DGDBTC | ETCBTC | FCTBTC | LTCBTC | MAIDBTC | NXTBTC | REPBTC | SCBTC | SDCBTC | SYSBTC | XMRBTC | XRPBTC
+     
+                      with
         member this.toString =
-               match this with
-                 | JPY -> "JPY"
-                 | BTC -> "BTC"
-                 | ETH -> "ETH"
-                 | DAO -> "DAO"
-                 | EUR -> "EUR"
-                 | USD -> "USD"
+           match this with
+                 | JPY    -> "JPY"
+                 | BTC    -> "BTC"
+                 | ETH    -> "ETH"
+                 | EUR    -> "EUR"
+                 | USD    -> "USD"
                  | BTCUSD -> "BTCUSD"
                  | ETHBTC -> "ETHBTC"
+                 | EURUSD -> "EURUSD"              
+                 | ARDR   -> "ARDR"
+                 | BTS    -> "BTS"
+                 | DAO    -> "DAO"
+                 | DGD    -> "DGD"
+                 | ETC    -> "ETC"
+                 | FCT    -> "FCT"
+                 | LTC    -> "LTC"
+                 | MAID   -> "MAID"
+                 | NXT    -> "NXT"
+                 | REP    -> "REP"
+                 | SC     -> "SC"
+                 | SDC    -> "SDC"
+                 | SYS    -> "SYS"
+                 | XMR    -> "XMR"
+                 | XRP    -> "XRP"
+                 | ARDRBTC-> "ARDRBTC"
+                 | BTSBTC -> "BTSBTC"
                  | DAOETH -> "DAOETH"
-                 | EURUSD -> "EURUSD"
-   let  Currency_list = [JPY;BTC;ETH;DAO;EUR;USD;BTCUSD;ETHBTC;DAOETH;EURUSD]
+                 | DGDBTC -> "DGDBTC"
+                 | ETCBTC -> "ETCBTC"
+                 | FCTBTC -> "FCTBTC"
+                 | LTCBTC -> "LTCBTC"
+                 | MAIDBTC-> "MAIDBTC"
+                 | NXTBTC -> "NXTBTC"
+                 | REPBTC -> "REPBTC"
+                 | SCBTC  -> "SCBTC"
+                 | SDCBTC -> "SDCBTC"
+                 | SYSBTC -> "SYSBTC"
+                 | XMRBTC -> "XMRBTC"
+                 | XRPBTC -> "XRPBTC"
+ 
+   //let  Currency_list = [JPY     ; BTC     ; ETH    ; EUR    ; USD   ;
+   //                                BTCUSD  ; ETHBTC ; EURUSD ;
+   //                      ARDR    ; BTS     ; DAO    ; ETC    ; FCT    ; LTC    ; MAID    ; NXT    ; REP    ; SC    ; SDC    ; SYS    ; XMR    ; XRP   ;
+   //                      ARDRBTC ; BTSBTC  ; DAOETH ; ETCBTC ; FCTBTC ; LTCBTC ; MAIDBTC ; NXTBTC ; REPBTC ; SCBTC ; SDCBTC ; SYSBTC ; XMRBTC ; XRPBTC ]
+
+   let allUnionCases<'T>() =
+       FSharpType.GetUnionCases(typeof<'T>)
+       |> Array.map (fun case -> FSharpValue.MakeUnion(case, [||]) :?> 'T)
+
+   // let  C = FSharpType.GetUnionCases typeof<Currency> |> Array.toList // not exactly what I need
+   let Currency_list = allUnionCases<Currency>() |> Array.toList
 
    type transaction_details = 
     {time     : DateTime ;
@@ -45,12 +90,11 @@ module Definitions =
 
    type transaction_quark_details =
     {time     : DateTime ;
-     currency : Currency   ;
+     currency : Currency ;
      size     : float    ;
      jpyprice : float    ;
      fee      : float    ;
      }
-
 
    type id = string // format "AB1234"
    type color = A |B with
@@ -245,7 +289,7 @@ module MyTransactions =
        let res = new Dictionary<Currency,float>()
        for cur in Currency_list do
            let tmp = make_one_summary taxableeventlog.[cur]
-           printfn "%A %A" cur tmp
+           if tmp <> 0.0 then printfn "%A %A" cur tmp
            res.[cur] <- tmp
        let mutable acc=0.0
        for cur in Currency_list do acc<-acc + res.[cur]

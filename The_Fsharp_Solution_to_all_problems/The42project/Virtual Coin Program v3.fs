@@ -53,9 +53,131 @@ let debug_init_price_table (price_table:price_table)=
     price_table.[ETH].Add(dt13,2200.0)
     price_table.[ETH].Add(dt14,2220.0)
 
-let KrakenOnlyinit (myT:transaction_DB) =
 
-    let rawfile = CsvFile.Load("/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/Kraken trades.csv")
+// let ICOinit (myT:transaction_DB)(price_table:price_table)=
+
+
+
+type Poloniex = 
+   CsvProvider<"/Users/francois-guillaume.rideau/Documents/crypto/trading/Poloniex tradeHistory.csv",";",
+                 Schema = "Order Number = string,Fee=float">
+
+let PoloniexOnlyinit (myT:transaction_DB)(price_table:price_table)=
+    let rawfile = Poloniex.GetSample()
+
+    let buy_or_sell (order)=
+        match order with
+          | "Buy"  -> 1.0
+          | "Sell" -> -1.0
+          | _ -> 0.0       // should not happen
+
+    let ParsePair_Poloniex pair =
+        match pair with
+          | "ARDR/BTC" -> (ARDR,BTC)
+          | "BTS/BTC"  -> (BTS,BTC)
+          | "DAO/BTC"  -> (DAO,BTC)
+          | "ETC/BTC"  -> (ETC,BTC)
+          | "ETH/BTC"  -> (ETH,BTC)
+          | "FCT/BTC"  -> (FCT,BTC)
+          | "LTC/BTC"  -> (LTC,BTC)
+          | "MAID/BTC" -> (MAID,BTC)
+          | "NXT/BTC"  -> (NXT,BTC)
+          | "REP/BTC"  -> (REP,BTC)
+          | "SC/BTC"   -> (SC,BTC)
+          | "SDC/BTC"  -> (SDC,BTC)
+          | "SYS/BTC"  -> (SYS,BTC)
+          | "XMR/BTC"  -> (XMR,BTC)
+          | "XRP/BTC"  -> (XRP,BTC)
+          | _ -> failwith "Poloniex pair not acknowledged"
+    
+    let keytable = new Dictionary<string,int>()
+    let mutable Poloniex_fee_jpy = 0.0
+
+    for row in rawfile.Rows do
+        let txid = row.``Order Number``
+        let txdate = row.Date
+        let pair = ParsePair_Poloniex (row.Market)
+        let (already_in,count) = keytable.TryGetValue (txid)
+        // printfn "%A" row.Fee
+        let fee = 0.01 * float (row.Fee) * float (row.Amount) * float (row.Price) * get_currency_price price_table (snd pair,txdate)
+        // let fee = 0.0
+
+        match already_in with
+          | false -> myT.Add(txid,{time=  txdate;
+                                   pair=  pair;
+                                   size=  float ( buy_or_sell(row.Type)) * float (row.Amount);                                         
+                                   price= float (row.Price);
+                                   fee=   fee 
+                                         }    )
+                     keytable.Add(txid,1)
+          | true -> myT.Add(txid+string count,{time=  txdate;
+                                               pair=  pair;
+                                               size=  float ( buy_or_sell(row.Type)) * float (row.Amount);                                         
+                                               price= float (row.Price);
+                                               fee= fee 
+                                               }    )
+                    keytable.[txid] <- count+1
+        Poloniex_fee_jpy <- Poloniex_fee_jpy + fee
+    printfn "Poloniex_fee_jpy = %A" Poloniex_fee_jpy
+    |> ignore
+
+let BitTrexOnly (myT:transaction_DB)(price_table:price_table) = 
+    let rawfile = CsvFile.Load("/Users/francois-guillaume.rideau/Documents/crypto/trading/BitTrex trades.csv",";")
+
+    let ParsePair_BitFinex pair =
+        match pair with
+          | "BTC-DGD"   -> (DGD,BTC)
+          | "BTC-ARDR"  -> (ARDR,BTC)
+          | _          -> failwith "BitTrex pair not acknowledged"
+    
+    let buy_or_sell (order)=
+        match order with
+          | "Limit Buy"  -> 1.0
+          | "Limit Sell" -> -1.0
+          | _ -> failwith "BitTrex buy/sell not acknowledged"       // should not happen
+    
+    let mutable BitTrex_fee_jpy = 0.0
+    for row in rawfile.Rows do
+        let txdate = System.DateTime.Parse (row.GetColumn("Closed Date"))
+        let pair=  ParsePair_BitFinex (row.GetColumn("Market"))
+        let fee    = 0.002*abs(float (row.GetColumn("Units Total")))*float (row.GetColumn("Bid/Ask")) * get_currency_price price_table (snd pair,txdate)
+        myT.Add(row.GetColumn("txid"),{time=  txdate;
+                                       pair=  pair;
+                                       size=  float ( buy_or_sell(row.GetColumn("Type"))) * float (row.GetColumn("Units Total"));                                         
+                                       price= float (row.GetColumn("Bid/Ask"));
+                                       fee=   fee
+                                       }    )
+        BitTrex_fee_jpy <- BitTrex_fee_jpy + fee
+    printfn "BitTrex_fee (jpy) = %A" BitTrex_fee_jpy
+
+let BitFinexOnly (myT:transaction_DB)(price_table:price_table) = 
+    let rawfile = CsvFile.Load("/Users/francois-guillaume.rideau/Documents/crypto/trading/BitFinex tradess.csv",";")
+
+    let ParsePair_BitFinex pair =
+        match pair with
+          | "BTCUSD"   -> (BTC,USD)
+          | "ETHUSD"   -> (ETH,USD)
+          | "ETHBTC"   -> (ETH,BTC)
+          | _          -> failwith "BitFinex pair not acknowledged"
+    
+    let mutable BitFinex_fee_jpy = 0.0
+    for row in rawfile.Rows do
+        let txdate = System.DateTime.Parse (row.GetColumn("Date"))
+        let pair   = ParsePair_BitFinex (row.GetColumn("Pair"))
+        let fee    = 0.002*abs(float (row.GetColumn("Amount")))*float (row.GetColumn("Price")) * get_currency_price price_table (snd pair,txdate)
+        myT.Add(row.GetColumn("txid"),{time=  txdate;
+                                       pair=  pair;
+                                       size=  float (row.GetColumn("Amount"));                                         
+                                       price= float (row.GetColumn("Price"));
+                                       fee=  fee 
+                                       }    )
+        BitFinex_fee_jpy <- BitFinex_fee_jpy + fee
+        printfn "%A %A" (row.GetColumn("txid")) fee
+    printfn "Bitfinex fee (jpy) total = %A" BitFinex_fee_jpy
+
+let KrakenOnlyinit (myT:transaction_DB)(price_table:price_table) =
+
+    let rawfile = CsvFile.Load("/Users/francois-guillaume.rideau/Documents/crypto/trading/Kraken trades.csv")
 
     let buy_or_sell (order)=
         match order with
@@ -66,30 +188,56 @@ let KrakenOnlyinit (myT:transaction_DB) =
     let ParsePair_Kraken pair =
         match pair with
           | "XDAOXETH" -> (DAO,ETH)
+          | "XETCXXBT" -> (ETC,BTC)
+          | "XETCZEUR" -> (ETC,EUR)
           | "XETHXXBT" -> (ETH,BTC)
           | "XETHZEUR" -> (ETH,EUR)
           | "XXBTZEUR" -> (BTC,EUR)
-          | _ -> failwith "pair not acknowledged"
+          | "XXRPXXBT" -> (XRP,BTC)
+          | _ -> failwith "Kraken pair not acknowledged"
 
+    let mutable kraken_fee_jpy = 0.0
+    
     for row in rawfile.Rows do
-
-        myT.Add(row.GetColumn("txid"),{time=  System.DateTime.Parse (row.GetColumn("time"));
+        let txdate = System.DateTime.Parse (row.GetColumn("time"))
+        let fee = float (row.GetColumn("fee")) * get_currency_price price_table (EUR,txdate)
+        myT.Add(row.GetColumn("txid"),{time=  txdate;
                                        pair=  ParsePair_Kraken (row.GetColumn("pair"));
                                        size=  float ( buy_or_sell(row.GetColumn("type")) * float (row.GetColumn("vol")));                                         
                                        price= float (row.GetColumn("price"));
-                                       fee=   float (row.GetColumn("fee"))
+                                       fee=   fee 
                                        }    )
+        kraken_fee_jpy <- kraken_fee_jpy + fee
+
+    printfn "kraken_fee = %A" kraken_fee_jpy
     |> ignore
     // printfn "%f" (myT.["TRSYD5-F2NKZ-KHQ6WB"].size) // ligne 58 du fichier CSV 
 
 // define JSON types for Virtual Currencies from source= Poloniex
 // there are 60*60*24 = 86400 seconds in a day
 // https://poloniex.com/public?command=returnChartData&currencyPair=BTC_ETH&start=1435699200&end=9999999999&period=86400
+
+// https://poloniex.com/public?command=returnChartData&currencyPair=BTC_ARDR&start=1435699200&end=9999999999&period=86400
 // https://poloniex.com/public?command=returnChartData&currencyPair=ETH_DAO&start=1435699200&end=9999999999&period=86400&includeDelisted=1
 // dates are specified in UNIX Posix format.
 
-type ETHBTC_f = JsonProvider<"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/ETHBTC_Poloniex.json">
-type DAOETH_f = JsonProvider<"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/DAOETH_Poloniex.json">
+type ETHBTC_f  = JsonProvider<"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/ETHBTC_Poloniex.json">
+
+type ARDRBTC_f = JsonProvider<"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/ARDRBTC_Poloniex.json">
+type BTSBTC_f  = JsonProvider<"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/BTSBTC_Poloniex.json">
+type ETCBTC_f  = JsonProvider<"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/ETCBTC_Poloniex.json">
+type FCTBTC_f  = JsonProvider<"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/FCTBTC_Poloniex.json">
+type LTCBTC_f  = JsonProvider<"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/LTCBTC_Poloniex.json">
+type MAIDBTC_f = JsonProvider<"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/MAIDBTC_Poloniex.json">
+type NXTBTC_f  = JsonProvider<"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/NXTBTC_Poloniex.json">
+type REPBTC_f  = JsonProvider<"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/REPBTC_Poloniex.json">
+type SCBTC_f   = JsonProvider<"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/SCBTC_Poloniex.json">
+type SDCBTC_f  = JsonProvider<"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/SDCBTC_Poloniex.json">
+type SYSBTC_f  = JsonProvider<"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/SYSBTC_Poloniex.json">
+type XMRBTC_f  = JsonProvider<"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/XMRBTC_Poloniex.json">
+type XRPBTC_f  = JsonProvider<"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/XRPBTC_Poloniex.json">
+
+type DAOETH_f  = JsonProvider<"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/DAOETH_Poloniex.json">
 
 let GetHistoricalData (price_table:price_table) = 
 
@@ -197,7 +345,7 @@ let GetHistoricalData (price_table:price_table) =
     for item in ethbtc do price_table.[ETHBTC].Add ((toDateTime item.Date).Date , float item.Close)
     cross_2_series price_table (ETHBTC,BTC,ETH) multiply_float
 
-    // DAO 
+    // DAO (special case as quoted vs ETH)
     let daoeth = DAOETH_f.GetSamples()
 
     for item in daoeth do price_table.[DAOETH].Add ((toDateTime item.Date).Date , float item.Close)
@@ -205,9 +353,96 @@ let GetHistoricalData (price_table:price_table) =
 
     for t in price_table.[DAO].Keys do
         printfn "%A %A" price_table.[DAO].[t] price_table.[ETH].[t]
+    
+    //let get_Poloniex_data (data:JsonProvider)(cur1,cur2) = // doesn't work
+    //    let samples = data.GetSamples()
+    //    for item in samples do price_table.[cur1].Add ((toDateTime item.Date).Date , float item.Close)
+    //    cross_2_series price_table (cur1,BTC,cur2) multiply_float
+
+    //  ARDR
+    let ardrbtc = ARDRBTC_f.GetSamples()
+
+    for item in ardrbtc do price_table.[ARDRBTC].Add ((toDateTime item.Date).Date , float item.Close)
+    cross_2_series price_table (ARDRBTC,BTC,ARDR) multiply_float
+
+    //  BTS
+    let btsbtc  = BTSBTC_f.GetSamples()
+
+    for item in btsbtc do price_table.[BTSBTC].Add ((toDateTime item.Date).Date , float item.Close)
+    cross_2_series price_table (BTSBTC,BTC,BTS) multiply_float
+
+    //  ETC
+    let etcbtc  = ETCBTC_f.GetSamples()
+
+    for item in etcbtc do price_table.[ETCBTC].Add ((toDateTime item.Date).Date , float item.Close)
+    cross_2_series price_table (ETCBTC,BTC,ETC) multiply_float
+
+    //  FCT
+    let fctbtc  = FCTBTC_f.GetSamples()
+
+    for item in fctbtc do price_table.[FCTBTC].Add ((toDateTime item.Date).Date , float item.Close)
+    cross_2_series price_table (FCTBTC,BTC,FCT) multiply_float
+
+    //  LTC
+    let ltcbtc  = LTCBTC_f.GetSamples()
+
+    for item in ltcbtc do price_table.[LTCBTC].Add ((toDateTime item.Date).Date , float item.Close)
+    cross_2_series price_table (LTCBTC,BTC,LTC) multiply_float
+
+    //  MAID
+    let maidbtc = MAIDBTC_f.GetSamples()
+
+    for item in maidbtc do price_table.[MAIDBTC].Add ((toDateTime item.Date).Date , float item.Close)
+    cross_2_series price_table (MAIDBTC,BTC,MAID) multiply_float
+
+    //  NXT
+    let nxtbtc  = NXTBTC_f.GetSamples()
+
+    for item in nxtbtc do price_table.[NXTBTC].Add ((toDateTime item.Date).Date , float item.Close)
+    cross_2_series price_table (NXTBTC,BTC,NXT) multiply_float
+
+    //  REP
+    let repbtc  = REPBTC_f.GetSamples()
+
+    for item in repbtc do price_table.[REPBTC].Add ((toDateTime item.Date).Date , float item.Close)
+    cross_2_series price_table (REPBTC,BTC,REP) multiply_float
+
+    //  SC
+    let scbtc  = SCBTC_f.GetSamples()
+
+    for item in scbtc do price_table.[SCBTC].Add ((toDateTime item.Date).Date , float item.Close)
+    cross_2_series price_table (SCBTC,BTC,SC) multiply_float
+
+    //  SDC
+    let sdcbtc  = SDCBTC_f.GetSamples()
+
+    for item in sdcbtc do price_table.[SDCBTC].Add ((toDateTime item.Date).Date , float item.Close)
+    cross_2_series price_table (SDCBTC,BTC,SDC) multiply_float
+
+    //  SYS
+    let sysbtc  = SYSBTC_f.GetSamples()
+
+    for item in sysbtc do price_table.[SYSBTC].Add ((toDateTime item.Date).Date , float item.Close)
+    cross_2_series price_table (SYSBTC,BTC,SYS) multiply_float
+
+    //  XMR
+    let xmrbtc  = XMRBTC_f.GetSamples()
+
+    for item in xmrbtc do price_table.[XMRBTC].Add ((toDateTime item.Date).Date , float item.Close)
+    cross_2_series price_table (XMRBTC,BTC,XMR) multiply_float
+
+    // XRP
+    let xrpbtc  = XRPBTC_f.GetSamples()
+
+    for item in xrpbtc do price_table.[XRPBTC].Add ((toDateTime item.Date).Date , float item.Close)
+    cross_2_series price_table (XRPBTC,BTC,XRP) multiply_float
+
+    // end of GetHistoricalData //
+
 
 let CountKeys (dict:Dictionary<'K,'T>) =
     dict.Keys |> Seq.toList |> List.length                         
+
 
 [<EntryPoint>]
 let main args =
@@ -219,20 +454,24 @@ let main args =
        let MyT         = VirtualCoinTaxes.MyTransactions.create_empty()
        let price_table = VirtualCoinTaxes.PriceTable.init()
 
-       // initialize historical data
+       // initialize historical data. need to do that before initializing transactions to calculate fees in JPY and break transactions
        GetHistoricalData price_table
 
        // initialize transactions
-       debug_init_myT MyT // example with 8 transactions 
-       // KrakenOnlyinit MyT
+       // debug_init_myT MyT // example with 8 transactions 
+       KrakenOnlyinit MyT price_table
+       PoloniexOnlyinit MyT price_table
+       BitFinexOnly MyT price_table
+       BitTrexOnly MyT price_table
 
        // break the transactions in pair for accounting purposes
        let D = VirtualCoinTaxes.MyTransactions.make_quark MyT price_table
 
        // printfn "im still a champion"
 
-       for id1 in D.Keys do
-           printfn "%A %A %A %A" (fst id1) (snd id1) D.[id1].size D.[id1].jpyprice
+       // print to console all the transactions
+       //for id1 in D.Keys do
+       //     printfn "%A %A %A %A" (fst id1) (snd id1) D.[id1].size D.[id1].jpyprice
 
        // make_taxable_event1 is relevant when there is only ONE currency
        //let (id1_list1:id1 list) = [("ID0001",A);("ID0002",A);("ID0003",A);("ID0004",A)]
@@ -242,16 +481,18 @@ let main args =
        let id1_list2 = get_sort_id1_list_by_date D
 
        // First-in First-out : process the transactions to make the report 
-       //let res2 = VirtualCoinTaxes.MyTransactions.make_taxable_event2 (D) (id1_list2)
-       //for cur in Currency_list do printfn "%A" cur.toString
-       //                            List.iter (fun (id1:id1,size) -> printfn "%A %A %A" (fst id1) (snd id1).toString size) (fst res2).[cur]
+       let res2 = VirtualCoinTaxes.MyTransactions.make_taxable_event2 (D) (id1_list2)
+       for cur in Currency_list do printfn "%A" cur.toString
+                                   List.iter (fun (id1:id1,size) -> printfn "%A %A %A" (fst id1) (snd id1).toString size) (fst res2).[cur]
 
-       //make_all_summary (snd res2) |> ignore
+       make_all_summary (snd res2) |> ignore
 
        // Average Price : process the transactions to make the report 
        let res4 = VirtualCoinTaxes.MyTransactions.make_taxable_event4 (D) (id1_list2)
-       for cur in Currency_list do printfn "%A" cur.toString
-                                   printfn "size = %A avg price = %A" (fst res4).[cur].size (fst res4).[cur].price
+       for cur in Currency_list do let size = (fst res4).[cur].size
+                                   if size <> 0.0 then 
+                                                    printfn "%A" cur.toString
+                                                    printfn "size = %A avg price = %A" size (fst res4).[cur].price
        make_all_summary (snd res4) |> ignore
 
        // test for checking historical prices
