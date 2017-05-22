@@ -367,5 +367,27 @@ module MyTransactions =
        myT.Keys |> Seq.toList // this is not necessarily sorted
                 |> List.sortBy (fun id1 -> (myT.[id1]).time.Date)
 
+   /// filter id_list for transaction_DB
+   let filter_id_list (filter: transaction_DB -> id -> bool)(myT:transaction_DB)(id_list:id list) =
+       let keys = myT.Keys |> Seq.toList
+       for id in keys do if (filter myT id = false) then (myT.Remove(id) |> ignore)
+    
+   /// filter id1_list for transaction_quark_DB
+   let filter_id1_list (filter: transaction_quark_DB -> id1 -> bool)(myT:transaction_quark_DB)(id1_list:id1 list) =
+        let keys = myT.Keys |> Seq.toList
+        for id1 in keys do if (filter myT id1 = false) then (myT.Remove(id1) |> ignore) 
 
- 
+   /// fold on Dictionary
+   let dictfold (folder:('a -> 'b -> 'a)) (acc:'a) (dict:Dictionary<'K,'b>) =
+       let mutable a =acc
+       for k in (dict.Keys |> Seq.toList) do
+           a <- folder a dict.[k]
+       a
+
+   /// get the sum of notionals of all transactions in a dictionary (should be filtered before to make sense)
+   let get_size_sum (D:transaction_quark_DB) =
+       let folder x (tr_q_d:transaction_quark_details) =
+           x + tr_q_d.size
+       dictfold folder 0.0 D
+
+    

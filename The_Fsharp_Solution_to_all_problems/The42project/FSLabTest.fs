@@ -48,7 +48,9 @@ let main args =
     //let html = ch.Html
     //let url = FsLab.Formatters.Server.instance.Value.AddPage(html)
     //System.Diagnostics.Process.Start(url) |> ignore
-   
+
+    printfn "%A" System.IntPtr.Size
+
     Console.ReadLine() |> ignore
 
     0

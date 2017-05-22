@@ -20,15 +20,15 @@ let debug_init_myT (myT:transaction_DB) =
     let dt3 = System.DateTime.Parse "2016-03-13 16:19:47.606"
     let dt4 = System.DateTime.Parse "2016-04-13 16:19:47.606"
 
-    myT.Add ("ID0001",{time=dt1;pair=(BTC,EUR);size= -100.0;price=100.0;fee=2.0 })
-    myT.Add ("ID0002",{time=dt2;pair=(BTC,EUR);size=  -50.0;price=120.0;fee=1.0 })
-    myT.Add ("ID0003",{time=dt3;pair=(BTC,EUR);size=  +50.0;price=200.0;fee=1.0 })
-    myT.Add ("ID0004",{time=dt4;pair=(BTC,EUR);size=  +50.0;price=200.0;fee=2.0 })
+    // myT.Add ("ID0001",{time=dt1;pair=(BTC,EUR);size= -100.0;price=100.0;fee=2.0 })
+    // myT.Add ("ID0002",{time=dt2;pair=(BTC,EUR);size=  -50.0;price=120.0;fee=1.0 })
+    // myT.Add ("ID0003",{time=dt3;pair=(BTC,EUR);size=  +50.0;price=200.0;fee=1.0 })
+    // myT.Add ("ID0004",{time=dt4;pair=(BTC,EUR);size=  +50.0;price=200.0;fee=2.0 })
     //myT.Add ("ID0005",{time=dt1;pair=(ETH,EUR);size= -100.0;price=10.0 ;fee=2.0 })
     //myT.Add ("ID0006",{time=dt2;pair=(ETH,EUR);size=  -50.0;price=12.0 ;fee=1.0 })
     //myT.Add ("ID0007",{time=dt3;pair=(ETH,EUR);size=  +50.0;price=20.0 ;fee=1.0 })
     //myT.Add ("ID0008",{time=dt4;pair=(ETH,EUR);size=  +50.0;price=20.0 ;fee=2.0 })
-
+    myT.Add ("ID0009",{time=dt1;pair=(ETH,BTC);size= +100.0;price=0.01;fee=0.0 })
 
 
 let debug_init_price_table (price_table:price_table)=
@@ -54,9 +54,15 @@ let debug_init_price_table (price_table:price_table)=
     price_table.[ETH].Add(dt14,2220.0)
 
 
-// let ICOinit (myT:transaction_DB)(price_table:price_table)=
+let ICOinit (myT:transaction_DB)=
+    let dt5 = System.DateTime.Parse "2016-05-31 16:19:47.606"
+    myT.Add ("ARDR-ICO"   ,{time=dt5;pair=(ARDR,BTC);size=456037.0;price=5.0/456037.0;fee=0.0 })
+    myT.Add ("DAO -ICO"   ,{time=dt5;pair=(DAO ,ETH);size=200000.0;price=0.01;fee=0.0 })
 
-
+let FXinit (myT:transaction_quark_DB)=
+    let dt5 = System.DateTime.Parse "2015-12-31 16:19:47.606"
+    myT.Add (("EURJPY-INIT",A),{time=dt5;currency=EUR;size= 550000.0;jpyprice=138.90;fee=0.0 })
+    myT.Add (("USDJPY-INIT",A),{time=dt5;currency=USD;size= 650000.0;jpyprice=112.68;fee=0.0 })
 
 type Poloniex = 
    CsvProvider<"/Users/francois-guillaume.rideau/Documents/crypto/trading/Poloniex tradeHistory.csv",";",
@@ -150,8 +156,15 @@ let BitTrexOnly (myT:transaction_DB)(price_table:price_table) =
         BitTrex_fee_jpy <- BitTrex_fee_jpy + fee
     printfn "BitTrex_fee (jpy) = %A" BitTrex_fee_jpy
 
+
+type BitFinex = 
+   CsvProvider<"/Users/francois-guillaume.rideau/Documents/crypto/trading/BitFinex trades.csv",";",
+                 Schema = "# = string,Amount = string,Price=string">
+
 let BitFinexOnly (myT:transaction_DB)(price_table:price_table) = 
-    let rawfile = CsvFile.Load("/Users/francois-guillaume.rideau/Documents/crypto/trading/BitFinex tradess.csv",";")
+    let rawfile = BitFinex.GetSample()
+
+    let reformat (s:string) = s.Replace (",",".")
 
     let ParsePair_BitFinex pair =
         match pair with
@@ -162,22 +175,24 @@ let BitFinexOnly (myT:transaction_DB)(price_table:price_table) =
     
     let mutable BitFinex_fee_jpy = 0.0
     for row in rawfile.Rows do
-        let txdate = System.DateTime.Parse (row.GetColumn("Date"))
-        let pair   = ParsePair_BitFinex (row.GetColumn("Pair"))
-        let fee    = 0.002*abs(float (row.GetColumn("Amount")))*float (row.GetColumn("Price")) * get_currency_price price_table (snd pair,txdate)
-        myT.Add(row.GetColumn("txid"),{time=  txdate;
-                                       pair=  pair;
-                                       size=  float (row.GetColumn("Amount"));                                         
-                                       price= float (row.GetColumn("Price"));
-                                       fee=  fee 
-                                       }    )
+        let txdate = row.Date
+        let pair   = ParsePair_BitFinex (row.Pair)
+        let amount = float (reformat row.Amount)
+        let price  = float (reformat row.Price)
+        let fee    = 0.002 * abs(amount) * price * (get_currency_price price_table (snd pair,txdate))
+        myT.Add(row.``#``,{time=  txdate;
+                           pair=  pair;
+                           size=  amount;                                         
+                           price= price;
+                           fee=  fee 
+                           }    )
         BitFinex_fee_jpy <- BitFinex_fee_jpy + fee
-        printfn "%A %A" (row.GetColumn("txid")) fee
+        printfn "%A %A" (row.``#``) fee
     printfn "Bitfinex fee (jpy) total = %A" BitFinex_fee_jpy
 
 let KrakenOnlyinit (myT:transaction_DB)(price_table:price_table) =
 
-    let rawfile = CsvFile.Load("/Users/francois-guillaume.rideau/Documents/crypto/trading/Kraken trades.csv")
+    let rawfile = CsvFile.Load("/Users/francois-guillaume.rideau/Documents/crypto/trading/Kraken trades.csv",";")
 
     let buy_or_sell (order)=
         match order with
@@ -312,6 +327,39 @@ let GetHistoricalData (price_table:price_table) =
     full_dates_eur |> List.iter (fun d -> let d0 = Array.find (fun s-> s<=d) t2'
                                           if (d0<>d) then price_table.[EUR].Add(d,price_table.[EUR].[d0]) else ()
                                 )
+     
+    // quick fix for jpyjpy
+                     
+                             
+    let jpyjpy_csv = File.ReadAllLines "/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/JPYJPY.csv"
+
+    let t3' = jpyjpy_csv |> Array.toList |> List.tail |> List.toArray
+                         |> Array.map (fun s -> s.[0..11]) 
+                         |> Array.map (System.DateTime.Parse)
+                         |> Array.map (fun (d:DateTime) -> d.Date)
+    let t3  = t3'        |> Array.rev
+
+    let v3  = jpyjpy_csv |> Array.toList |> List.tail |> List.toArray
+                         |> Array.map (fun s -> s.[13..18]) 
+                         |> Array.map (fun text -> text.Replace (";",""))
+                         |> Array.map float
+                         |> Array.rev
+
+    for i in 0..(t1.Length-1) do price_table.[JPY].Add (t1.[i],v1.[i])
+
+    // add data for weekends (same than for Friday)
+    // another (better ?) approach would have been to modify the get_currency_price to find the latest available price
+
+    let start_date_jpy = t1.[0]
+    let end_date_jpy = t1.[t1.Length - 1]
+    let days_span_jpy = (end_date_jpy-start_date_jpy).Days
+    let full_dates_jpy = [for i in 0..days_span_jpy do yield start_date_jpy.AddDays(float i)]
+
+    full_dates_jpy |> List.iter (fun d -> let d0 = Array.find (fun s-> s<=d) t1'
+                                          if (d0<>d) then price_table.[JPY].Add(d,price_table.[JPY].[d0]) else ()
+
+                                )
+
 
     printfn "so far ok"
 
@@ -458,27 +506,49 @@ let main args =
        GetHistoricalData price_table
 
        // initialize transactions
-       // debug_init_myT MyT // example with 8 transactions 
-       KrakenOnlyinit MyT price_table
-       PoloniexOnlyinit MyT price_table
-       BitFinexOnly MyT price_table
-       BitTrexOnly MyT price_table
+       debug_init_myT MyT // example with 8 transactions 
+       // KrakenOnlyinit MyT price_table
+       // PoloniexOnlyinit MyT price_table
+       // BitFinexOnly MyT price_table
+       // BitTrexOnly MyT price_table
+
+       // ICOinit MyT
+       // apply filters // not yet
+
+       //let filter (myT:transaction_DB) id = 
+       //    let end_date = System.DateTime.Parse "2016-12-31"
+       //    (myT.[id].time.Date <= end_date) && ( fst(myT.[id].pair) = ETC || snd(myT.[id].pair) = ETC )
+
+
 
        // break the transactions in pair for accounting purposes
        let D = VirtualCoinTaxes.MyTransactions.make_quark MyT price_table
-
+       // FXinit D
        // printfn "im still a champion"
 
-       // print to console all the transactions
-       //for id1 in D.Keys do
-       //     printfn "%A %A %A %A" (fst id1) (snd id1) D.[id1].size D.[id1].jpyprice
+
 
        // make_taxable_event1 is relevant when there is only ONE currency
        //let (id1_list1:id1 list) = [("ID0001",A);("ID0002",A);("ID0003",A);("ID0004",A)]
        //let res1 = VirtualCoinTaxes.MyTransactions.make_taxable_event1 (D) (id1_list1)
 
        // sort transactions by date before processing
-       let id1_list2 = get_sort_id1_list_by_date D
+       let id1_list1 = get_sort_id1_list_by_date D
+
+       // apply filters
+
+       let filter (myT:transaction_quark_DB) (id1:id1) = 
+           let end_date = System.DateTime.Parse "2016-12-31"
+           (myT.[id1].time.Date <= end_date) // && myT.[id1].currency = ETH 
+
+
+       filter_id1_list (filter) D id1_list1
+
+       let id1_list2 = get_sort_id1_list_by_date D // a bit of a waste of time...
+
+       // print to console all the transactions
+       for id1 in D.Keys do
+            printfn "%A %A %A %A" (fst id1) (snd id1) D.[id1].size D.[id1].jpyprice
 
        // First-in First-out : process the transactions to make the report 
        let res2 = VirtualCoinTaxes.MyTransactions.make_taxable_event2 (D) (id1_list2)
@@ -497,17 +567,24 @@ let main args =
 
        // test for checking historical prices
 
-       let dt = (System.DateTime.Parse  "2016-01-13 16:19:47.606").Date
+       //let dt = (System.DateTime.Parse  "2016-01-13 16:19:47.606").Date
 
-       printfn "USDJPY = %A EURJPY = %A" (get_currency_price (price_table) (USD,dt)) (get_currency_price (price_table) (EUR,dt))
-       printfn "BTCUSD = %A BTCJPY = %A" (get_currency_price price_table (BTCUSD,dt)) (get_currency_price price_table (BTC,dt))
+       //printfn "USDJPY = %A EURJPY = %A" (get_currency_price (price_table) (USD,dt)) (get_currency_price (price_table) (EUR,dt))
+       //printfn "BTCUSD = %A BTCJPY = %A" (get_currency_price price_table (BTCUSD,dt)) (get_currency_price price_table (BTC,dt))
        // printfn "ETHBTC = %A ETHJPY = %A" (get_currency_price price_table (ETHBTC,dt)) (get_currency_price price_table (ETH,dt))
 
-       let dtt = (System.DateTime.Parse "2016-03-13 16:19:47.606").Date
+       //let dtt = (System.DateTime.Parse "2016-03-13 16:19:47.606").Date
 
-       printfn "USDJPY = %A EURJPY = %A" (get_currency_price (price_table) (USD,dtt))(get_currency_price (price_table) (EUR,dtt))
-       printfn "BTCUSD = %A BTCJPY = %A" (get_currency_price price_table (BTCUSD,dtt)) (get_currency_price price_table (BTC,dtt))
+       //printfn "USDJPY = %A EURJPY = %A" (get_currency_price (price_table) (USD,dtt))(get_currency_price (price_table) (EUR,dtt))
+       //printfn "BTCUSD = %A BTCJPY = %A" (get_currency_price price_table (BTCUSD,dtt)) (get_currency_price price_table (BTC,dtt))
        // printfn "ETHBTC = %A ETHJPY = %A" (get_currency_price price_table (ETHBTC,dt)) (get_currency_price price_table (ETH,dt))
+
+
+       // test for checking BTC and ETH sizes
+
+       printfn "checksum = %A" (get_size_sum D)
+       
+
 
        0
     // Return 0. This indicates success.

@@ -377,8 +377,8 @@ module MyTransactions =
         let keys = myT.Keys |> Seq.toList
         for id1 in keys do if (filter myT id1 = false) then (myT.Remove(id1) |> ignore) 
 
-   /// fold on Dictionary
-   let dictfold (folder:('a -> 'b -> 'a)) (acc:'a) (dict:Dictionary<'K,'b>) =
+   /// pseudofold on Dictionary - no dependency on key
+   let dictpseudofold (folder:('a -> 'b -> 'a)) (acc:'a) (dict:Dictionary<'K,'b>) =
        let mutable a =acc
        for k in (dict.Keys |> Seq.toList) do
            a <- folder a dict.[k]
@@ -388,6 +388,27 @@ module MyTransactions =
    let get_size_sum (D:transaction_quark_DB) =
        let folder x (tr_q_d:transaction_quark_details) =
            x + tr_q_d.size
-       dictfold folder 0.0 D
+       dictpseudofold folder 0.0 D
 
-    
+   /// get the latent profit of a position
+   let latent_total_profit (pos:Dictionary<Currency,position>)(price_table:price_table)(date:DateTime)=
+       let d = date.Date
+       let K = pos.Keys |> Seq.toList
+
+       let mutable acc   = 0.0
+       let mutable acc1  = 0.0
+       for cur in K do
+           let size = pos.[cur].size
+           if size <>0.0 then 
+               let tmp = size * (price_table.[cur].[d] - pos.[cur].price)
+               let tmp1  = size * price_table.[cur].[d]
+               printfn "latent profit in %A = %A" cur tmp
+               printfn "size = %A, avg price = %A, final price = %A" (pos.[cur].size) (pos.[cur].price) (price_table.[cur].[d])
+               printfn "valuation = %A" ((pos.[cur].size)*(price_table.[cur].[d]))
+               acc  <- acc+tmp
+               acc1 <- acc1 + tmp1
+       printfn "total latent profit = %A" acc
+       printfn "total valuation     = %A" acc1
+
+
+

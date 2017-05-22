@@ -20,9 +20,10 @@ open FSharpx.Collections
 
 // #r @"C:\Users\Fagui\Documents\GitHub\Learning Fsharp\Algo Stanford\packages\FSharp.Data.2.3.2\lib\net40\FSharp.Data.dll"
 
+
 // MAC
 #r @"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/packages/FSharp.Data.2.3.2/lib/net40/FSharp.Data.dll"
-
+#r @"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/packages/FSharp.Data.2.3.2/lib/net40/FSharp.Data.dll"
 
 
 
@@ -42,3 +43,22 @@ let parseLine (line:string)=
 
 // how to get the current directory in F# interactive
 //     Environment.CurrentDirectory;
+
+// DEEDLE
+// MAC
+#nowarn "211"
+#r @"/Users/francois-guillaume.rideau/Documents/Learning-Fsharp/The_Fsharp_Solution_to_all_problems/packages/Deedle.1.2.5/lib/net40/Deedle.dll"
+
+// for F# interactive only ???
+
+// do fsi.AddPrinter(fun (printer:Deedle.Internal.IFsiFormattable) -> "\n" + (printer.Format()))
+// open Deedle
+
+
+
+
+#nowarn "211"
+#nowarn "40"
+
+// When compiling, a reference to this is needed
+

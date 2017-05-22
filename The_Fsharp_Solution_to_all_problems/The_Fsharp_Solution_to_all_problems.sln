@@ -5,7 +5,7 @@ Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "The42project", "The42projec
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{F664E36C-5D06-41E1-98C3-0822945DCCED}"
 	ProjectSection(SolutionItems) = preProject
-		README_load_packages.fsx = README_load_packages.fsx
+		The_Fsharp_Solution_to_all_problems.sln = The_Fsharp_Solution_to_all_problems.sln
 	EndProjectSection
 EndProject
 Global
