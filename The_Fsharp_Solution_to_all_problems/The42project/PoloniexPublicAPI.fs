@@ -39,12 +39,16 @@ let convert1 series =
     series |> Series.mapAll (fun _ v -> v |> Option.bind OptionalValue.asOption)
 
 /// sum of (series + series.Shift 1 + series.Shift2 + ... + series.Shift n)
+// recursive implementation
+//let slidingsum_f (n:int) (series:Series<'K,float>) = 
+    //let rec helper k acc =
+    //    if k <0 then failwith "error: negative argument"
+    //            elif k=0 then acc
+    //            else helper (k-1) (acc + series.Shift k)
+    //helper n series
+
 let slidingsum_f (n:int) (series:Series<'K,float>) = 
-    let rec helper k acc =
-        if k <0 then failwith "error: negative argument"
-                elif k=0 then acc
-                else helper (k-1) (acc + series.Shift k)
-    helper n series
+    series |> Series.windowInto n (fun S -> S.NumSum()) 
 
 type Size = float
 type EntryDate = DateTime
@@ -126,7 +130,19 @@ let CallAPI_and_save_JSON (webAPIcall:string,jsonFilename:string) =
     let s = http webAPIcall
     File.WriteAllText (jsonFilename,s)
 
-  
+let GetPairHistory (pair:string) =
+    let commandType1 = "returnChartData"
+    let currencyPair1 = pair // for example "BTC_ETH"
+    let start_date1 = string 1405699200M // already defined up there
+    let end_date1   = string 9999999999M
+    let period1     = string 300M
+    let period1b    = string 14400M
+
+    let polReq = "https://poloniex.com/public?" + "command=" + commandType1 + "&currencyPair=" + currencyPair1 + "&start=" + start_date1
+                  + "&end=" + end_date1 + "&period=" + period1
+    CallAPI_and_save_JSON (polReq,"/Users/francois-guillaume.rideau/Documents/crypto/trading/backtesting/"+pair+".json")
+
+let Currency_list = ["BTC_XRP";"BTC_ZEC"]
 
 let jsonFilename = "/Users/francois-guillaume.rideau/Documents/chart_data.json"
 // type BookOrder = JsonProvider<jsonFilename> doesn't work, why ??
@@ -244,8 +260,8 @@ let main args =
     //////////////////////////////////////////////////////////////////////////
     // ACHTUNG !!!!!! THIS DOESN'T WORK INSIDE VS MAC AT THE MOMENT !!!!!!! //
     //////////////////////////////////////////////////////////////////////////
-    let ChartNow = ChartData.Load(polReq1)
-
+    let ChartNow = ChartData.Load(polReq1)  // 5mn
+    let ChartNow = ChartData.Load(polReq1b) //daily
 
 
     // too much data to visualize
@@ -354,8 +370,8 @@ let main args =
 
     let w_size_close = 10
     let OrigClose = hourlychart |> Series.mapValues getCandleClose
-    let AvgClose  = OrigClose |> Series.windowInto w_size_close Stats.mean |> Series.shift +1
-    let StdClose  = OrigClose |> Series.windowInto w_size_close Stats.stdDev |> Series.shift +1
+    let AvgClose  = OrigClose |> Series.windowInto w_size_close Stats.mean |> Series.shift 0    // it's ok to use 0 ONLY because we trade at next Open.
+    let StdClose  = OrigClose |> Series.windowInto w_size_close Stats.stdDev |> Series.shift 0
     let MaxClose  = OrigClose |> Series.windowInto w_size_close Stats.max 
                               |> Series.mapValues (fun o -> match o with // o pour option
                                                              | Some x -> x
@@ -399,6 +415,36 @@ let main args =
                                                            
                                                             Series.tryGet d' StdVolume)
                                   |> convert
+    
+
+
+
+    // RSI Indicator
+
+    let RSI_n = 14
+
+    // HOURLY
+
+    let Hourly_U = (Series.diff 1 OrigClose) |> Series.mapValues (fun x -> max x 0.0)
+    let Hourly_D = (Series.diff 1 OrigClose) |> Series.mapValues (fun x -> min x 0.0)
+    let Hourly_Mean14_U = Hourly_U |> Series.windowInto RSI_n Stats.mean 
+    let Hourly_Mean14_D = -Hourly_D |> Series.windowInto RSI_n Stats.mean
+    let HourlyRSI = 100.0 * HourlyMean14_U / (HourlyMean14_U + HourlyMean14_D)
+
+    // 5MNS
+
+    let _5mn_U = (Series.diff 1 Close) |> Series.mapValues (fun x -> max x 0.0)
+    let _5mn_D = (Series.diff 1 Close) |> Series.mapValues (fun x -> min x 0.0)
+    let _5mn_Mean14_U =   _5mn_U |> Series.windowInto RSI_n Stats.mean 
+    let _5mn_Mean14_D = - _5mn_D |> Series.windowInto RSI_n Stats.mean
+    let _5mn_RSI = 100.0 * _5mn_Mean14_U / (_5mn_Mean14_U + _5mn_Mean14_D)
+
+
+    // defined on the 5mn 
+    let lastHourlyRSI = mychart  |> Series.map (fun d c -> let d' = DateTime(d.Year,d.Month,d.Day,d.Hour,0,0)-TimeSpan(1,0,0)
+                                                           
+                                                           Series.tryGet d' HourlyRSI)
+                                  |> convert
 
     // The Exec_Price is the Open of the next 5mn candle        
     let exec_price_1 = (mychart |> Series.mapValues getCandleOpen).Shift -1 
@@ -423,7 +469,8 @@ let main args =
     let signal_dates_bear = df2.RowKeys
 
     let dff = Frame.ofColumns["Volume"=?>Volume;"HourlyAvgVolume"=?>HourlyAvgVolume;"HourlyStdVolume"=?>HourlyStdVolume;
-                              "Close"=?>Close;"HourlyAvgClose"=?>HourlyAvgClose;"HourlyStdClose"=?>HourlyStdClose;"HourlyMaxClose"=?>HourlyMaxClose
+                              "Close"=?>Close;"HourlyAvgClose"=?>HourlyAvgClose;"HourlyStdClose"=?>HourlyStdClose;"HourlyMaxClose"=?>HourlyMaxClose;
+                              "lastHourlyRSI"=?>lastHourlyRSI;
                               "Exec_Price"=?>exec_price_1]
 
     // dff.GetColumn<float opt>("AvgHourlyClose")
@@ -433,6 +480,12 @@ let main args =
     let df1' = dff |> Frame.filterRows (fun _ row -> ((row?Close  > row?HourlyAvgClose +  1.0*row?HourlyStdClose) ||
                                                       (row?Close  > row?HourlyMaxClose)) &&
                                                       (row?Volume > row?HourlyAvgVolume + 1.6*row?HourlyStdVolume))
+    // adding RSI condition
+    let df1' = dff |> Frame.filterRows (fun _ row -> ((row?Close  > row?HourlyAvgClose +  1.0*row?HourlyStdClose) ||
+                                                      (row?Close  > row?HourlyMaxClose)) &&
+                                                      (row?Volume > row?HourlyAvgVolume + 1.6*row?HourlyStdVolume) &&
+                                                      (row?lastHourlyRSI)<=70.0
+                                                      )
     
     let signal_dates_bull_1 = df1'.RowKeys
 
@@ -515,7 +568,7 @@ type TradeHorizon =
 
     let folder1 (pos:Position1,horizon:TradeHorizon,trade:(Size*DateTime*EntryLvl) list) (current_date:DateTime) = 
 
-        let make_trade (trade:(Size*DateTime*EntryLvl) list) (size,tradedate,tradelevel) = // not optimized at all !!!!!!
+        let make_trade (trade:(Size*DateTime*EntryLvl) list) (size,tradedate,tradelevel) = 
             (size,tradedate,tradelevel)::trade
 
         // printfn "%A" current_date
@@ -563,13 +616,12 @@ type TradeHorizon =
 
     let folder1A (pos:Position1,horizon:TradeHorizon,trade:(Size*DateTime*EntryLvl*ExitLvl) list) (current_date:DateTime) = 
 
-        let make_trade  (trade:(Size*DateTime*EntryLvl*ExitLvl) list) (size,tradedate,tradelevel) = // not optimized at all !!!!!!
+        let make_trade  (trade:(Size*DateTime*EntryLvl*ExitLvl) list) (size,tradedate,tradelevel) = 
             (size,tradedate,tradelevel,tradelevel)::trade
 
-        let close_trade (trade:(Size*DateTime*EntryLvl*ExitLvl) list) (size,tradedate,tradelevel) =
-            let (s,_,
-
-
+        let close_trade (trade:(Size*DateTime*EntryLvl*ExitLvl) list) (tradelevel) = // doesn't take size as argument nor the exit trade date to simplify
+            let (s,d,en,_) = trade.Head
+            (s,d,en,tradelevel)::trade.Tail
 
         // printfn "%A" current_date
         let holding_period = TimeSpan(6,0,0)
@@ -579,17 +631,17 @@ type TradeHorizon =
                      match horizon with 
                        | DateLimit datelimit -> if current_date < datelimit
                                                        then if ( (mychart.[current_date] |> getCandleLow) <= stoplvl )// if stop-loss hit
-                                                               then let trade'= make_trade trade (-1.0,current_date,stoplvl) // close trade at stoplvl
+                                                               then let trade'= close_trade trade (stoplvl) // close trade at stoplvl
                                                                     (NoPos1,horizon,trade')                                                               
                                                             else let m = min lowsofar  (mychart.[current_date] |> getCandleLow )
                                                                  let M = max highsofar (mychart.[current_date] |> getCandleHigh)
                                                                  let pos' = Pos1(size,entrydate,entrylvl,stoplvl,m,M)
                                                                  (pos',horizon,trade)     //hold
                                                  
-                                                else let trade'= make_trade trade (-1.0,current_date,exec_price_1.[current_date])// close trade because of time limit
+                                                else let trade'= close_trade trade (exec_price_1.[current_date])// close trade because of time limit
                                                      (NoPos1,NoHorizon,trade')
                        | NoHorizon -> if ( (mychart.[current_date] |> getCandleLow) <= stoplvl )// if stop-loss hit
-                                         then let trade'= make_trade trade (-1.0,current_date,stoplvl) // close trade at stoplvl
+                                         then let trade'= close_trade trade (stoplvl) // close trade at stoplvl
                                               (NoPos1,horizon,trade')       
                                       else let m = min lowsofar  (mychart.[current_date] |> getCandleLow )
                                            let M = max highsofar (mychart.[current_date] |> getCandleHigh)
@@ -624,9 +676,12 @@ type TradeHorizon =
 
     // folder1
 
-    let res1 = Seq.fold folder1 (NoPos,NoHorizon,[]) daterange
-    let trade_dates_bull1 = (snd res) |> List.map fst
+    let res1 = Seq.fold folder1 (NoPos1,NoHorizon,[]) daterange
+    let trade_dates_bull1 = (snd res1) |> List.map fst
 
+    // folder1A
+    let res1A = Seq.fold folder1A (NoPos1,NoHorizon,[]) daterange
+    let ans:float list = res1A |> fun (a,b,c)->c |> List.map (fun (s,d,en,ex)-> (ex-en)/en)
 
     // PERFORMANCE of SIGNALS
 
@@ -712,7 +767,7 @@ type TradeHorizon =
 
         let options2 =
                 Options(
-                   title = "Magic Trading",
+                   title = "Magic Trading " + string k,
                    vAxes = [|Axis(title = "Price");Axis(title="Volume")|],
                    hAxis = Axis(title = "DateTime"),
                    series = [|Series(targetAxisIndex=0);Series(targetAxisIndex=1)|]
@@ -722,12 +777,50 @@ type TradeHorizon =
         [candle;vol_rescaled]
             |> Chart.Candlestick
             |> Chart.WithOptions options2
-    
-    // Useful shortcut in F# interactive
-    let SC k = 
-        printfn "%A" (snd res).[k]
-        plotHourlyAround_v1 keys.[k]
+ 
+    let plotHourlyAround_v2 (k:DateTime) =
+        let k1 = k - TimeSpan(24,0,0)
+        let k2 = k + TimeSpan(24,0,0)
+        let ch = hourlychart.Between (k1,k2)
+               |> unwrap_candle_series
+               |> Series.map (fun d c -> match c with
+                                          |(l,o,cl,h,v,w) -> (l,o,cl,h,v) )
 
+        let line = [ for x in ch.Keys do let (l,o,cl,h,v) = ch.[x]
+                                         yield (x,cl) ]
+        let RSI = [ for x in ch.Keys -> (x,HourlyRSI.[x]) ]
+
+        let H = line |> Seq.map (fun (a,b)->b  )|> Seq.max
+        let L = line |> Seq.map (fun (a,b)->b    )|> Seq.min
+        let R = RSI |> Seq.map (fun (a,b)->abs b)|> Seq.max
+
+        let r = 1.0 // * R/H * 10.0
+
+        let options2 =
+                Options(
+                   title = "Magic Trading " + string k,
+                   vAxes = [|Axis(title = "Price");Axis(title="RSI")|],
+                   hAxis = Axis(title = "DateTime"),
+                   series = [|Series(targetAxisIndex=0);Series(targetAxisIndex=1)|]
+                 )
+
+        let RSI_rescaled = RSI |> List.map (fun (a,b)-> (a,b/r) )
+        [line;RSI_rescaled]
+            |> Chart.Line
+            |> Chart.WithOptions options2
+
+
+               
+    // Useful shortcut in F# interactive
+    let SC1A k =
+        let keys = List.map (fun (a,b,c,d)->b) (res1A |> fun (a,b,c)->c)
+        printfn "%A" (res1A |> fun (a,b,c)->c).[k]
+        plotHourlyAround_v1 keys.[k]
+  
+    let SC2A k =
+        let keys = List.map (fun (a,b,c,d)->b) (res1A |> fun (a,b,c)->c)
+        printfn "%A" (res1A |> fun (a,b,c)->c).[k]
+        plotHourlyAround_v2 keys.[k]
                              
 
     let k = crashdate

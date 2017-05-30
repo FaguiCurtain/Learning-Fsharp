@@ -137,9 +137,11 @@
   <ItemGroup>
     <None Include="packages.config" />
     <None Include="Google.DataTable.Net.Wrapper.XML" />
-    <Compile Include="Example_Project_File1.fs" />
-    <Compile Include="Example_Project_main_program.fs" />
-    <None Include="RProvider_Test.fsx" />
+    <Compile Include="DateTime_library.fs" />
+    <Compile Include="PoloniexPublicAPI_Libraries.fs" />
+    <None Include="SaveJSONprices.fsx" />
+    <Compile Include="Trading_Strategies_Libraries.fs" />
+    <Compile Include="bug_test.fs" />
   </ItemGroup>
   <Import Project="$(FSharpTargetsPath)" />
 </Project>

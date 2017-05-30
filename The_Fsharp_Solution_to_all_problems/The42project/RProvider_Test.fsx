@@ -90,3 +90,5 @@ let myseq5a_rescale = myseq5a |> Seq.map (fun (a,b,c,d,e) -> (a,b/r,c/r,d/r,e/r)
  |> Chart.WithLayout multiLayout
  |> Chart.WithWidth 700
  |> Chart.WithHeight 500
+
+

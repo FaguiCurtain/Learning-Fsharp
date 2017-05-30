@@ -2,7 +2,7 @@
 
 // series.diff : be careful of using it while calculating past or future returns
 
-let myseq = [for i in 1..10 do yield (i,i*i)]
+let myseq = [for i in 1..10 do yield (i,float (i*i))]
 let myseries = Series.ofObservations myseq
 
 Series.diff 1 myseries
@@ -150,3 +150,6 @@ map2series2 (+) series1 series2;;
  //3 -> 4         
  //4 -> <missing> 
 
+let myfun = 
+     let df = Frame.ofColumns["series1"=> series1;"series2"=>series2]
+     0
