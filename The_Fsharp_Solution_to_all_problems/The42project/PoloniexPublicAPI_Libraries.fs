@@ -1,4 +1,4 @@
-﻿module PoloniexPublicAPI = 
+﻿module PoloniexPublicAPI 
 
     open System
     open System.IO

@@ -153,3 +153,18 @@ map2series2 (+) series1 series2;;
 let myfun = 
      let df = Frame.ofColumns["series1"=> series1;"series2"=>series2]
      0
+
+ 
+let myseq = seq [("A",1);("B",2)]
+Frame.ofRows myseq
+
+myarray|> Array.map (fun (a,b)->(a,(b,c)))
+       |> Array.toSeq
+       |> Frame.ofRows;;
+
+let root = "/Users/francois-guillaume.rideau/Documents/"
+
+let msft = 
+  Frame.ReadCsv(root + "MSFT.csv") 
+  |> Frame.indexRowsDate "Date"
+  |> Frame.sortRowsByKey

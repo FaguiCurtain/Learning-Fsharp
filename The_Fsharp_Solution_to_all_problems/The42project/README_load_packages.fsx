@@ -53,6 +53,8 @@ fsi.AddPrinter(fun (vector:Vector<complex32>) -> vector.ToString())
 //
 
 #load "FsLab.1.0.2/FsLab.fsx" // bug bizarre mais il faut le faire 2 fois dans F# interactive pour que ça marche
+// dans fsharpi64 ça marche du 1er coup
+
 open System
 open FSharp.Data
 open Deedle
